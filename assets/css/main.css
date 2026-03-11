@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /* DEFAULT STANDARD */
+        --color-ace-bg: 7 21 38;
+        /* #071526 */
+        --color-ace-panel: 11 36 71;
+        /* #0b2447 */
+        --color-ace-border: 52 126 177;
+        /* #347eb1 */
+        --color-ace-text: 140 180 207;
+        /* #8cb4cf */
+        --color-ace-highlight: 195 230 253;
+        /* #c3e6fd */
+        --color-ace-warning: 201 138 44;
+        /* #c98a2c */
+        --color-ace-title: 255 255 255;
+        /* #ffffff */
+    }
+
+    /* Light Theme */
+    :root[data-theme="light"] {
+        --color-ace-bg: 240 244 248;
+        /* #f0f4f8 */
+        --color-ace-panel: 238 238 238;
+        /* #eeeeee */
+        --color-ace-border: 52 126 177;
+        /* #347eb1 */
+        --color-ace-text: 51 65 85;
+        /* #334155 */
+        --color-ace-highlight: 11 36 71;
+        /* #0b2447 */
+        --color-ace-warning: 201 138 44;
+        /* #c98a2c */
+        --color-ace-title: 11 36 71;
+        /* #0b2447 */
+    }
+
+    /* Dark Theme */
+    :root[data-theme="dark"] {
+        --color-ace-bg: 36 36 36;
+        /* #242424 */
+        --color-ace-panel: 49 49 49;
+        /* #313131 */
+        --color-ace-border: 70 70 70;
+        /* #464646 */
+        --color-ace-text: 180 180 180;
+        /* #b4b4b4 */
+        --color-ace-highlight: 238 238 238;
+        /* #eeeeee */
+        --color-ace-warning: 255 100 100;
+        /* #ff6464 */
+        --color-ace-title: 255 255 255;
+        /* #ffffff */
+    }
+
+    body {
+        @apply bg-ace-bg text-ace-text font-sans antialiased overflow-x-hidden;
+        /* Simulate a slight CRT/Hologram glow */
+        text-shadow: 0 0 2px rgba(140, 180, 207, 0.3);
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-mono uppercase tracking-wider text-ace-highlight;
+    }
+
+    /* Custom Scrollbar for Ace Combat 7 Theme */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-ace-bg border-l border-ace-border border-opacity-30;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-ace-highlight opacity-50;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        @apply bg-white;
+    }
+}
+
+@layer utilities {
+    .animate-hologram {
+        animation: hologram-pulse 2s infinite alternate;
+    }
+
+    @keyframes hologram-pulse {
+        0% {
+            opacity: 0.8;
+            text-shadow: 0 0 2px rgba(195, 230, 253, 0.5);
+        }
+
+        100% {
+            opacity: 1;
+            text-shadow: 0 0 8px rgba(195, 230, 253, 0.9);
+        }
+    }
+
+    .scanlines-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: linear-gradient(to bottom,
+                rgba(255, 255, 255, 0),
+                rgba(255, 255, 255, 0) 50%,
+                rgba(0, 0, 0, 0.1) 50%,
+                rgba(0, 0, 0, 0.1));
+        background-size: 100% 4px;
+        pointer-events: none;
+        z-index: 50;
+        opacity: 0.5;
+    }
+
+    .glass-panel {
+        @apply bg-ace-panel bg-opacity-80 backdrop-blur-sm border border-ace-border text-ace-text;
+        box-shadow: 0 0 10px rgba(52, 126, 177, 0.2), inset 0 0 20px rgba(var(--color-ace-panel), 0.5);
+    }
+
+    .drop-shadow-title {
+        filter: drop-shadow(0 0 8px rgba(var(--color-ace-title), 0.8));
+    }
+
+    .ace-button {
+        @apply font-mono uppercase tracking-widest text-xs px-4 py-2 border transition-all duration-200;
+    }
+
+    .ace-button-primary {
+        @apply bg-transparent border-ace-highlight text-ace-highlight hover:bg-ace-highlight hover:text-ace-bg;
+        box-shadow: 0 0 5px rgba(195, 230, 253, 0.5);
+    }
+
+    .ace-button-warning {
+        @apply bg-transparent border-ace-warning text-ace-warning hover:bg-ace-warning hover:text-ace-bg;
+    }
+
+    .ace-input {
+        @apply bg-transparent border-b border-gray-600 focus:border-ace-border outline-none text-ace-highlight font-mono;
+    }
+}

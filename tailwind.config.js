@@ -1,0 +1,33 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+    content: [
+        "./components/**/*.{js,vue,ts}",
+        "./layouts/**/*.vue",
+        "./pages/**/*.vue",
+        "./plugins/**/*.{js,ts}",
+        "./app.vue",
+    ],
+    theme: {
+        extend: {
+            colors: {
+                'ace-bg': 'rgb(var(--color-ace-bg) / <alpha-value>)',
+                'ace-panel': 'rgb(var(--color-ace-panel) / <alpha-value>)',
+                'ace-border': 'rgb(var(--color-ace-border) / <alpha-value>)',
+                'ace-text': 'rgb(var(--color-ace-text) / <alpha-value>)',
+                'ace-highlight': 'rgb(var(--color-ace-highlight) / <alpha-value>)',
+                'ace-warning': 'rgb(var(--color-ace-warning) / <alpha-value>)',
+                'ace-title': 'rgb(var(--color-ace-title) / <alpha-value>)',
+            },
+            fontFamily: {
+                'mono': ['"Share Tech Mono"', '"Courier New"', 'Courier', 'monospace'],
+                'sans': ['"Noto Sans JP"', 'sans-serif'],
+            },
+            backgroundImage: {
+                'scanlines': 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2))'
+            }
+        },
+    },
+    plugins: [
+        require('@tailwindcss/typography'),
+    ],
+}
