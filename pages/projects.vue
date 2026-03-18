@@ -15,7 +15,7 @@
             <h2 class="text-lg font-bold tracking-widest text-ace-highlight flex items-center">
               <span class="w-2 h-4 bg-ace-highlight mr-2 inline-block"></span>ACTIVE PROJECTS
             </h2>
-            <button @click="addProject" class="ace-button text-[10px] border-ace-text text-ace-text hover:bg-ace-highlight hover:text-ace-bg">+ ADD NEW PROJECT</button>
+            <button @click="addProject" class="ace-button text-xxs border-ace-text text-ace-text hover:bg-ace-highlight hover:text-ace-bg">+ ADD NEW PROJECT</button>
           </div>
           
           <div v-if="loading" class="text-center py-4 font-mono text-xs text-ace-highlight animate-pulse tracking-widest">
@@ -23,7 +23,7 @@
           </div>
           <div v-else class="space-y-3">
             <div v-for="id in Object.keys(projectsData.project)" :key="id" class="flex items-center space-x-3 bg-black/20 p-2 border border-ace-border/30 group">
-              <span class="text-ace-warning font-bold w-12 text-center text-[10px] bg-ace-bg border border-ace-warning/50 py-1">ID: {{ id }}</span>
+              <span class="text-ace-warning font-bold w-12 text-center text-xxs bg-ace-bg border border-ace-warning/50 py-1">ID: {{ id }}</span>
               <input 
                 v-model="projectsData.project[id].name" 
                 type="text" 

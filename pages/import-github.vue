@@ -47,7 +47,7 @@
                     <input 
                       v-model="repoPath" 
                       type="text" 
-                      class="flex-grow bg-transparent border-b border-ace-border px-2 py-1 text-[10px] text-white focus:outline-none focus:border-ace-highlight"
+                      class="flex-grow bg-transparent border-b border-ace-border px-2 py-1 text-xxs text-white focus:outline-none focus:border-ace-highlight"
                       placeholder="Manual entry if not in list: owner/repo"
                     >
                   </div>
@@ -67,7 +67,7 @@
           <div class="flex justify-between items-center p-3 border-b border-ace-border/30 bg-ace-bg/50">
             <h2 class="text-xs font-bold tracking-widest text-ace-title drop-shadow-title">>> DETECTED SIGNALS: {{ issues.length }}</h2>
             <div class="flex space-x-4">
-              <button v-if="selectedCount > 0" @click="importSelected" :disabled="importing" class="text-[10px] text-white bg-ace-highlight px-3 py-1 hover:brightness-110">
+              <button v-if="selectedCount > 0" @click="importSelected" :disabled="importing" class="text-xxs text-white bg-ace-highlight px-3 py-1 hover:brightness-110">
                 {{ importing ? 'IMPORTING...' : `IMPORT SELECTED (${selectedCount})` }}
               </button>
             </div>

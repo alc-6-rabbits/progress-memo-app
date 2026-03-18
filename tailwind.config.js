@@ -24,6 +24,10 @@ module.exports = {
             },
             backgroundImage: {
                 'scanlines': 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2))'
+            },
+            fontSize: {
+                'xxs': '0.625rem',
+                'tiny': '0.5rem',
             }
         },
     },
