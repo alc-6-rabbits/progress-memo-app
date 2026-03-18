@@ -27,7 +27,7 @@
 
         <div class="mb-4 flex justify-between items-end border-b border-ace-border/30 pb-2">
           <h3 class="text-sm font-bold tracking-widest text-ace-text">PROJECTS & TASKS</h3>
-          <button @click="addProject" class="ace-button text-[10px] border-ace-text text-ace-text hover:bg-ace-highlight hover:text-ace-bg">+ ADD PROJECT</button>
+          <button @click="addProject" class="ace-button text-xxs border-ace-text text-ace-text hover:bg-ace-highlight hover:text-ace-bg">+ ADD PROJECT</button>
         </div>
 
         <div v-for="(project, pIndex) in reportData" :key="pIndex" class="mb-6 border-l-2 border-ace-warning pl-4 relative group">
@@ -49,7 +49,7 @@
               <textarea v-model="task.details" rows="3" placeholder="- Action&#10;⇒ Result" class="block w-full bg-ace-bg/50 border border-ace-border/50 p-2 text-xs text-ace-text focus:border-ace-highlight outline-none resize-y font-sans"></textarea>
               <button @click="removeTask(pIndex, tIndex)" class="absolute top-0 right-0 text-red-500 hover:text-red-300 text-xs px-1 opacity-0 group-hover/task:opacity-100 transition-opacity">×</button>
             </div>
-            <button @click="addTask(pIndex)" class="text-[10px] text-ace-highlight hover:text-white transition-colors tracking-widest">+ ADD TASK</button>
+            <button @click="addTask(pIndex)" class="text-xxs text-ace-highlight hover:text-white transition-colors tracking-widest">+ ADD TASK</button>
           </div>
         </div>
       </div>

@@ -76,6 +76,21 @@
           </select>
         </div>
 
+        <div class="mb-4">
+          <label class="block text-xs font-bold text-ace-text tracking-widest mb-2">FONT SIZE (PX)</label>
+          <div class="flex items-center space-x-4">
+            <input 
+              v-model.number="aceFontSize" 
+              type="number" 
+              min="12" 
+              max="32" 
+              class="block w-24 ace-input bg-ace-bg/50 p-3 border border-ace-border focus:border-ace-highlight focus:ring-1 focus:ring-ace-highlight transition-all text-white text-center"
+            >
+            <button @click="resetFontSize" class="ace-button ace-button-primary px-4 py-2">RESET</button>
+          </div>
+          <p class="text-xs text-slate-400 mt-2">Adjust system-wide base font size (Range: 12px - 32px).</p>
+        </div>
+
         <div class="mb-4 mt-6 pt-4 border-t border-ace-border/30">
           <label class="block text-xs font-bold text-ace-text tracking-widest mb-2">DEFAULT STARTUP SCREEN</label>
           <select v-model="startupScreen" class="block w-full bg-ace-bg/80 border border-ace-border text-ace-highlight p-3 rounded-none outline-none font-mono text-sm leading-relaxed">
@@ -105,6 +120,7 @@ const githubPat = ref('')
 const githubRepo = ref('')
 const uiTheme = ref('default')
 const startupScreen = ref('tasks')
+const aceFontSize = ref(16)
 const saveDirectory = ref('')
 const saveMessage = ref('')
 const isInitializing = ref(true)
@@ -128,6 +144,7 @@ onMounted(async () => {
   githubRepo.value = localStorage.getItem('githubRepo') || ''
   uiTheme.value = localStorage.getItem('uiTheme') || 'default'
   startupScreen.value = localStorage.getItem('startupScreen') || 'tasks'
+  aceFontSize.value = parseInt(localStorage.getItem('aceFontSize') || '16', 10)
   saveDirectory.value = localStorage.getItem('tasksDir') || ''
   
   isInitializing.value = false
@@ -149,6 +166,10 @@ const selectDir = async () => {
     }
 }
 
+const resetFontSize = () => {
+    aceFontSize.value = 16
+}
+
 const saveSettings = async () => {
   let finalWebhook = webhookUrl.value
   let finalPat = githubPat.value
@@ -164,8 +185,10 @@ const saveSettings = async () => {
   localStorage.setItem('uiTheme', uiTheme.value)
   localStorage.setItem('startupScreen', startupScreen.value)
   localStorage.setItem('tasksDir', saveDirectory.value)
+  localStorage.setItem('aceFontSize', aceFontSize.value.toString())
   
   document.documentElement.setAttribute('data-theme', uiTheme.value)
+  document.documentElement.style.setProperty('--ace-base-font-size', aceFontSize.value + 'px')
   
   saveMessage.value = 'Settings saved locally!'
   setTimeout(() => saveMessage.value = '', 3000)
