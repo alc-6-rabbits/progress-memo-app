@@ -319,18 +319,53 @@ ipcMain.handle('distribute-accumulation', async (event, customDirPath?: string) 
             return { success: true, message: 'Accumulation file is empty' }
         }
 
+        // Load projects data for metadata resolution
+        const projectsFilePath = path.join(rootDir, 'projects.json')
+        let projectsData: any = { project: { "1": { name: "Inbox (未分類)" } } }
+        let projectsChanged = false
+        if (fs.existsSync(projectsFilePath)) {
+            try {
+                projectsData = JSON.parse(await fs.promises.readFile(projectsFilePath, 'utf-8'))
+            } catch (e) {
+                console.error('[Distribute] Failed to parse projects.json:', e)
+            }
+        }
+
         const lines = accumContent.split('\n')
         
         let currentFile = ''
+        let currentProjectId = ''
+        let currentProjectName = ''
+        let currentTitle = ''
         const fileContentMap: Record<string, string[]> = {}
+        const fileMetaMap: Record<string, { project_id: string, project_name: string, title: string }> = {}
 
         // Parse accumulation file line by line
         for (const line of lines) {
+            // Parse project info
+            const projMatch = line.match(/^## project：(.+?) \(id: (.+?)\)$/)
+            if (projMatch) {
+                currentProjectName = projMatch[1]
+                currentProjectId = projMatch[2]
+            }
+
+            // Parse task title
+            const titleMatch = line.match(/^### title：(.+)$/)
+            if (titleMatch) {
+                currentTitle = titleMatch[1]
+            }
+
             const fileMatch = line.match(/^<!-- file:\s*(.+?)\s*-->$/)
             if (fileMatch) {
                 currentFile = fileMatch[1]
                 if (!fileContentMap[currentFile]) {
                     fileContentMap[currentFile] = []
+                }
+                // Record metadata for this file
+                fileMetaMap[currentFile] = {
+                    project_id: currentProjectId,
+                    project_name: currentProjectName,
+                    title: currentTitle
                 }
             } else if (line.trim().startsWith('- [') && currentFile) {
                 // It's a task detail line
@@ -349,8 +384,52 @@ ipcMain.handle('distribute-accumulation', async (event, customDirPath?: string) 
              
              const targetPath = path.join(tasksDir, filename)
              if (!fs.existsSync(targetPath)) {
-                 console.warn(`Target task file ${targetPath} not found for distribution.`)
-                 continue
+                 console.log(`[Distribute] Target ${filename} not found. Creating new task file.`)
+
+                 const taskMeta = fileMetaMap[filename]
+                 if (!taskMeta || !taskMeta.title) {
+                     console.warn(`[Distribute] No metadata found for ${filename}. Skipping.`)
+                     continue
+                 }
+
+                 // Project existence check and auto-creation
+                 let projectId = taskMeta.project_id
+                 const projectName = taskMeta.project_name || 'Inbox (未分類)'
+
+                 if (projectId && !projectsData.project[projectId]) {
+                     projectsData.project[projectId] = { name: projectName, tags: [] }
+                     projectsChanged = true
+                 } else if (!projectId) {
+                     // Resolve by name if id is unknown
+                     const matchEntry = Object.entries(projectsData.project)
+                         .find(([_, p]: [string, any]) => p.name === projectName)
+                     if (matchEntry) {
+                         projectId = matchEntry[0]
+                     } else {
+                         const ids = Object.keys(projectsData.project).map(Number).filter(n => !isNaN(n))
+                         projectId = String(ids.length > 0 ? Math.max(...ids) + 1 : 1)
+                         projectsData.project[projectId] = { name: projectName, tags: [] }
+                         projectsChanged = true
+                     }
+                 }
+
+                 // Create new task file
+                 const newFrontmatter = matter.stringify('', {
+                     id: `auto-${Date.now()}`,
+                     title: taskMeta.title,
+                     project_id: projectId,
+                     project_name: projectName,
+                     status: 'inProgress',
+                     created_at: new Date().toISOString(),
+                     updated_at: new Date().toISOString()
+                 })
+
+                 if (!fs.existsSync(tasksDir)) {
+                     fs.mkdirSync(tasksDir, { recursive: true })
+                 }
+
+                 await fs.promises.writeFile(targetPath, newFrontmatter, 'utf-8')
+                 console.log(`[Distribute] Created new task file: ${targetPath}`)
              }
 
              const content = await fs.promises.readFile(targetPath, 'utf-8')
@@ -371,6 +450,11 @@ ipcMain.handle('distribute-accumulation', async (event, customDirPath?: string) 
              // Append details to body
              const newContentString = matter.stringify(parsed.content + appendBody.trimEnd(), parsed.data)
              await fs.promises.writeFile(targetPath, newContentString, 'utf-8')
+        }
+
+        // Save projects if updated
+        if (projectsChanged) {
+            await fs.promises.writeFile(projectsFilePath, JSON.stringify(projectsData, null, 2), 'utf-8')
         }
 
         // Clear accumulation file

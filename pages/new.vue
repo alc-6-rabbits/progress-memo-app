@@ -60,16 +60,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useProjects } from '~/composables/useProjects'
 
-const projectsData = ref({ project: {} })
+const { projectsData, loadProjects, resolveProjectId } = useProjects()
 
 onMounted(async () => {
   try {
-    if (window.electronAPI && window.electronAPI.getProjects) {
-      const customDir = localStorage.getItem('tasksDir') || undefined
-      const data = await window.electronAPI.getProjects(customDir)
-      if (data && data.project) projectsData.value = data
-    }
+    await loadProjects()
   } catch (e) {
     console.error('Failed to load projects:', e)
   }
@@ -100,23 +97,9 @@ const saveTask = async () => {
     if (window.electronAPI && window.electronAPI.saveMarkdown) {
       const customDir = localStorage.getItem('tasksDir') || undefined
       
-      // Resolve project ID and Name
-      let matchedId = null
+      // Resolve project ID and Name using composable
       const inputName = form.value.project || '未分類'
-      for (const [id, proj] of Object.entries(projectsData.value.project)) {
-        if (proj.name === inputName) {
-          matchedId = id
-          break
-        }
-      }
-      
-      if (!matchedId) {
-        // Create new project entry
-        const ids = Object.keys(projectsData.value.project).map(Number).filter(n => !isNaN(n))
-        matchedId = String(ids.length > 0 ? Math.max(...ids) + 1 : 1)
-        projectsData.value.project[matchedId] = { name: inputName }
-        await window.electronAPI.saveProjects(projectsData.value, customDir)
-      }
+      const matchedId = await resolveProjectId(inputName)
 
       // Construct Front-matter
       const frontmatter = `---

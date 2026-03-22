@@ -24,12 +24,26 @@
           <div v-else class="space-y-3">
             <div v-for="id in Object.keys(projectsData.project)" :key="id" class="flex items-center space-x-3 bg-black/20 p-2 border border-ace-border/30 group">
               <span class="text-ace-warning font-bold w-12 text-center text-xxs bg-ace-bg border border-ace-warning/50 py-1">ID: {{ id }}</span>
-              <input 
-                v-model="projectsData.project[id].name" 
-                type="text" 
-                class="block w-full ace-input bg-transparent py-2 px-3 font-bold text-white text-sm focus:bg-ace-bg/80 focus:border-ace-highlight transition-all"
-                placeholder="PROJECT NAME"
-              >
+              <div class="flex-grow flex items-center space-x-4">
+                <input 
+                  v-model="projectsData.project[id].name" 
+                  type="text" 
+                  class="block flex-grow ace-input bg-transparent py-2 px-3 font-bold text-white text-sm focus:bg-ace-bg/80 focus:border-ace-highlight transition-all"
+                  placeholder="PROJECT NAME"
+                >
+                <!-- Tag UI -->
+                <div class="flex items-center space-x-1 flex-wrap shrink-0">
+                  <span v-for="tag in (projectsData.project[id].tags || [])" :key="tag"
+                        class="px-2 py-0.5 bg-ace-warning/20 border border-ace-warning/50 text-xxs text-ace-warning flex items-center space-x-1">
+                    <span>{{ tag }}</span>
+                    <button @click="removeTag(id, tag)" class="hover:text-white ml-1">×</button>
+                  </span>
+                  <input v-model="newTagInput[id]"
+                         @keyup.enter="addTag(id)"
+                         class="w-24 bg-transparent border-b border-ace-border text-xxs px-1 py-0.5 text-white focus:outline-none focus:border-ace-highlight"
+                         placeholder="+ Tag" />
+                </div>
+              </div>
               <button @click="removeProject(id)" class="text-red-500 hover:text-red-300 p-2 opacity-50 group-hover:opacity-100 transition-opacity" title="DELETE PROJECT">×</button>
             </div>
             <div v-if="Object.keys(projectsData.project).length === 0" class="text-xs text-ace-text py-8 text-center bg-black/20 border border-ace-border/30">
@@ -52,22 +66,18 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useProjects } from '~/composables/useProjects'
 
-const projectsData = ref({ project: {} })
+const { projectsData, loadProjects, saveProjects } = useProjects()
 const loading = ref(true)
 const saving = ref(false)
 const message = ref('')
 const isError = ref(false)
+const newTagInput = ref({})
 
 onMounted(async () => {
     try {
-        if (window.electronAPI && window.electronAPI.getProjects) {
-            const customDir = localStorage.getItem('tasksDir') || undefined
-            const data = await window.electronAPI.getProjects(customDir)
-            if (data && data.project) {
-                projectsData.value = data
-            }
-        }
+        await loadProjects()
     } catch (e) {
         console.error('Failed to load projects:', e)
         showMessage('Failed to load projects', true)
@@ -79,13 +89,30 @@ onMounted(async () => {
 const addProject = () => {
     const ids = Object.keys(projectsData.value.project).map(Number).filter(n => !isNaN(n))
     const nextId = ids.length > 0 ? Math.max(...ids) + 1 : 1
-    projectsData.value.project[String(nextId)] = { name: `N/A - ${nextId}` }
+    projectsData.value.project[String(nextId)] = { name: `N/A - ${nextId}`, tags: [] }
 }
 
 const removeProject = (id) => {
     if (confirm(`Delete project ID ${id}? Tasks associated with this ID may lose their classification.`)) {
         delete projectsData.value.project[id]
     }
+}
+
+const addTag = (id) => {
+  const tagName = (newTagInput.value[id] || '').trim()
+  if (!tagName) return
+  if (!projectsData.value.project[id].tags) {
+    projectsData.value.project[id].tags = []
+  }
+  if (!projectsData.value.project[id].tags.includes(tagName)) {
+    projectsData.value.project[id].tags.push(tagName)
+  }
+  newTagInput.value[id] = ''
+}
+
+const removeTag = (id, tag) => {
+  const tags = projectsData.value.project[id].tags || []
+  projectsData.value.project[id].tags = tags.filter(t => t !== tag)
 }
 
 const showMessage = (msg, error = false) => {
@@ -97,14 +124,11 @@ const showMessage = (msg, error = false) => {
 const saveChanges = async () => {
     saving.value = true
     try {
-        if (window.electronAPI && window.electronAPI.saveProjects) {
-            const customDir = localStorage.getItem('tasksDir') || undefined
-            const response = await window.electronAPI.saveProjects(projectsData.value, customDir)
-            if (response.success) {
-                showMessage('Projects saved successfully!')
-            } else {
-                showMessage(`Failed to save: ${response.error}`, true)
-            }
+        const response = await saveProjects()
+        if (response.success) {
+            showMessage('Projects saved successfully!')
+        } else {
+            showMessage(`Failed to save: ${response.error}`, true)
         }
     } catch (e) {
         console.error(e)
