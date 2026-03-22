@@ -155,4 +155,61 @@
     .ace-input {
         @apply bg-transparent border-b border-gray-600 focus:border-ace-border outline-none text-ace-highlight font-mono;
     }
+
+    /* ============================================================
+     * Google Chat Preview Styles
+     * Google Chat の見た目を再現するプレビューエリア用スタイル
+     * TASK-20260322-1534 §3.2 参照
+     * ============================================================ */
+    .gchat-preview {
+        font-family: 'Roboto', 'Noto Sans JP', Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #e8eaed;
+        background: #202124;
+        padding: 1rem;
+        border-radius: 4px;
+    }
+
+    .gchat-preview b {
+        font-weight: 700;
+    }
+
+    .gchat-preview .gchat-code-block {
+        display: block;
+        background: #292b2e;
+        padding: 8px 12px;
+        margin: 4px 0;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+    }
+
+    .gchat-preview .gchat-inline-code {
+        background: #292b2e;
+        padding: 2px 4px;
+        border-radius: 2px;
+        font-family: monospace;
+        font-size: 13px;
+    }
+
+    /* ============================================================
+     * Markdown Editor Toolbar Styles
+     * TASK-20260322-1535 §2.2 参照
+     * ============================================================ */
+    .toolbar-btn {
+        @apply px-2 py-1 text-xxs font-mono text-ace-text border border-ace-border/30
+               hover:bg-ace-highlight hover:text-ace-bg transition-colors cursor-pointer;
+    }
+
+    /* ============================================================
+     * Context Menu Item Styles
+     * TASK-20260322-1535 §2.7 参照
+     * ============================================================ */
+    .ctx-menu-item {
+        @apply px-3 py-2 text-xs font-mono text-left text-ace-text
+               hover:bg-ace-highlight/20 hover:text-white transition-colors cursor-pointer
+               block;
+    }
 }
