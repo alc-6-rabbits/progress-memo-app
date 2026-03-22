@@ -111,27 +111,119 @@
         </div>
       </div>
 
-      <!-- ===== SUMMARY セクション ===== -->
-      <div v-if="githubAllItems.length > 0" class="border border-ace-border/30 p-4 bg-ace-bg/30">
-        <h2 class="text-sm font-bold tracking-widest text-ace-highlight flex items-center mb-3">
-          <span class="w-2 h-4 bg-ace-highlight mr-2 inline-block"></span>STATUS OVERVIEW
-        </h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="text-center py-3 border border-ace-border/30 bg-ace-bg/50">
-            <div class="text-2xl font-bold text-ace-text">{{ statusCounts.todo }}</div>
-            <div class="text-xxs tracking-widest text-ace-text mt-1">TODO</div>
+      <!-- ===== STATUS OVERVIEW: カンバンボード ===== -->
+      <div v-if="githubAllItems.length > 0" class="border border-ace-border/30 bg-ace-bg/30">
+        <!-- ヘッダー -->
+        <div class="p-4 border-b border-ace-border/30 flex items-center justify-between">
+          <h2 class="text-sm font-bold tracking-widest text-ace-highlight flex items-center">
+            <span class="w-2 h-4 bg-ace-highlight mr-2 inline-block"></span>STATUS OVERVIEW
+          </h2>
+          <!-- プロジェクトフィルター -->
+          <select v-if="githubProjects.length > 1" 
+                  v-model="selectedProject"
+                  class="bg-ace-bg/80 border border-ace-border text-ace-text text-xxs px-2 py-1 outline-none font-mono">
+            <option value="">ALL PROJECTS</option>
+            <option v-for="proj in githubProjects" :key="proj" :value="proj">
+              {{ proj }}
+            </option>
+          </select>
+        </div>
+
+        <!-- カンバンボード -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-0">
+
+          <!-- TODO カラム -->
+          <div class="border-r border-ace-border/20 p-3 min-h-[200px]">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-ace-text/20">
+              <span class="text-xs font-bold tracking-widest text-ace-text flex items-center">
+                <span class="w-2 h-2 rounded-full bg-ace-text mr-2"></span>
+                TODO
+              </span>
+              <span class="text-xxs text-ace-text bg-ace-bg px-1.5 py-0.5 border border-ace-border/30">
+                {{ boardItems.todo.length }}
+              </span>
+            </div>
+            <div class="space-y-2">
+              <div v-for="item in boardItems.todo" :key="item.id"
+                   class="board-card border-ace-text/30 hover:border-ace-text"
+                   @click="openInBrowser(item.url)">
+                <div class="text-xxs text-ace-warning truncate">{{ item.repository.split('/')[1] || item.projectTitle }}</div>
+                <div class="text-xs text-white font-sans mt-1 leading-snug">{{ item.title }}</div>
+                <div class="flex items-center justify-between mt-2">
+                  <span class="text-xxs text-ace-text">#{{ item.number }}</span>
+                  <span v-if="item.dueDate" class="text-xxs"
+                        :class="item.scheduleStatus === 'overdue' ? 'text-red-400' : item.scheduleStatus === 'at-risk' ? 'text-yellow-400' : 'text-ace-text'">
+                    {{ item.dueDate }}
+                  </span>
+                </div>
+              </div>
+              <div v-if="boardItems.todo.length === 0" class="text-xxs text-ace-text/50 text-center py-4">
+                No items
+              </div>
+            </div>
           </div>
-          <div class="text-center py-3 border border-ace-border/30 bg-ace-bg/50">
-            <div class="text-2xl font-bold text-ace-highlight">{{ statusCounts.inProgress }}</div>
-            <div class="text-xxs tracking-widest text-ace-text mt-1">IN PROGRESS</div>
+
+          <!-- IN PROGRESS カラム -->
+          <div class="border-r border-ace-border/20 p-3 min-h-[200px]">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-ace-highlight/30">
+              <span class="text-xs font-bold tracking-widest text-ace-highlight flex items-center">
+                <span class="w-2 h-2 rounded-full bg-ace-highlight mr-2"></span>
+                IN PROGRESS
+              </span>
+              <span class="text-xxs text-ace-highlight bg-ace-bg px-1.5 py-0.5 border border-ace-highlight/30">
+                {{ boardItems.inProgress.length }}
+              </span>
+            </div>
+            <div class="space-y-2">
+              <div v-for="item in boardItems.inProgress" :key="item.id"
+                   class="board-card border-ace-highlight/30 hover:border-ace-highlight"
+                   :class="{ 'board-card--overdue': item.scheduleStatus === 'overdue', 'board-card--at-risk': item.scheduleStatus === 'at-risk' }"
+                   @click="openInBrowser(item.url)">
+                <div class="text-xxs text-ace-warning truncate">{{ item.repository.split('/')[1] || item.projectTitle }}</div>
+                <div class="text-xs text-white font-sans mt-1 leading-snug">{{ item.title }}</div>
+                <div class="flex items-center justify-between mt-2">
+                  <span class="text-xxs text-ace-text">#{{ item.number }}</span>
+                  <div class="flex items-center space-x-1">
+                    <span v-if="item.scheduleStatus === 'overdue'" class="text-xxs text-red-400 font-bold animate-pulse">⚠ OVERDUE</span>
+                    <span v-else-if="item.scheduleStatus === 'at-risk'" class="text-xxs text-yellow-400 font-bold">⚠ AT RISK</span>
+                    <span v-if="item.dueDate" class="text-xxs"
+                          :class="item.scheduleStatus === 'overdue' ? 'text-red-400' : item.scheduleStatus === 'at-risk' ? 'text-yellow-400' : 'text-ace-text'">
+                      {{ item.dueDate }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="boardItems.inProgress.length === 0" class="text-xxs text-ace-text/50 text-center py-4">
+                No items
+              </div>
+            </div>
           </div>
-          <div class="text-center py-3 border border-ace-border/30 bg-ace-bg/50">
-            <div class="text-2xl font-bold text-green-400">{{ statusCounts.done }}</div>
-            <div class="text-xxs tracking-widest text-ace-text mt-1">DONE</div>
-          </div>
-          <div class="text-center py-3 border border-red-500/30 bg-red-900/10">
-            <div class="text-2xl font-bold text-red-400">{{ statusCounts.overdue }}</div>
-            <div class="text-xxs tracking-widest text-red-400 mt-1">OVERDUE</div>
+
+          <!-- DONE カラム -->
+          <div class="p-3 min-h-[200px]">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-green-500/30">
+              <span class="text-xs font-bold tracking-widest text-green-400 flex items-center">
+                <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                DONE
+              </span>
+              <span class="text-xxs text-green-400 bg-ace-bg px-1.5 py-0.5 border border-green-500/30">
+                {{ boardItems.done.length }}
+              </span>
+            </div>
+            <div class="space-y-2">
+              <div v-for="item in boardItems.done" :key="item.id"
+                   class="board-card border-green-500/20 opacity-60 hover:opacity-80"
+                   @click="openInBrowser(item.url)">
+                <div class="text-xxs text-ace-warning truncate">{{ item.repository.split('/')[1] || item.projectTitle }}</div>
+                <div class="text-xs text-white font-sans mt-1 leading-snug line-through">{{ item.title }}</div>
+                <div class="flex items-center justify-between mt-2">
+                  <span class="text-xxs text-ace-text">#{{ item.number }}</span>
+                </div>
+              </div>
+              <div v-if="boardItems.done.length === 0" class="text-xxs text-ace-text/50 text-center py-4">
+                No items
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -186,18 +278,43 @@ const alerts = computed(() => {
   })
 })
 
-const statusCounts = computed(() => {
-  const counts = { todo: 0, inProgress: 0, done: 0, overdue: 0 }
-  githubAllItems.value.forEach(item => {
-    const s = (item.status || '').toLowerCase()
-    if (s === 'done') counts.done++
-    else if (s === 'in progress') counts.inProgress++
-    else if (s === 'todo') counts.todo++
+// ─── ボード表示用 ──────────────────────────────────────────
+const selectedProject = ref('')
 
-    if (item.scheduleStatus === 'overdue') counts.overdue++
+const githubProjects = computed(() => {
+  const projects = new Set()
+  githubAllItems.value.forEach(item => {
+    if (item.projectTitle) projects.add(item.projectTitle)
   })
-  return counts
+  return Array.from(projects).sort()
 })
+
+const filteredGithubItems = computed(() => {
+  if (!selectedProject.value) return githubAllItems.value
+  return githubAllItems.value.filter(i => i.projectTitle === selectedProject.value)
+})
+
+const boardItems = computed(() => {
+  const items = filteredGithubItems.value
+  return {
+    todo: items.filter(i => {
+      const s = (i.status || '').toLowerCase()
+      return s === 'todo' || (!s && i.state !== 'CLOSED')
+    }),
+    inProgress: items.filter(i => (i.status || '').toLowerCase() === 'in progress'),
+    done: items.filter(i => (i.status || '').toLowerCase() === 'done')
+  }
+})
+
+const openInBrowser = (url) => {
+  if (url && window.electronAPI && window.electronAPI.openExternal) {
+    window.electronAPI.openExternal(url)
+  } else if (url) {
+    window.open(url, '_blank')
+  }
+}
+
+
 
 // ─── ヘルパー ─────────────────────────────────────────────
 const statusBadgeClass = (status) => {

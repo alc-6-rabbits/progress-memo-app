@@ -1,5 +1,5 @@
 # Progress Memo App
-**Version 1.3.0 "Information Linkage Update"**
+**Version 1.4.0 "Operation Dashboard Update"**
 
 Progress Memo App は、Electron と Nuxt 3 を基盤として構築された、ローカル完結型のパーソナルタスク・進捗管理デスクトップアプリケーションです。
 サイバーパンクやフライトシューティングゲーム（『エースコンバット7』など）の戦術データリンク（UI/UX）にインスパイアされた、ダークブルー基調の情報密度の高いデザインを採用しています。
@@ -38,11 +38,16 @@ Progress Memo App は、Electron と Nuxt 3 を基盤として構築された、
 - **Google Chat プレビュー**: Google Chat 独自のマークダウン仕様（アスタリスク1つの太字など）を再現したプレビューモードを搭載。
 - **GitHub Issue 自動コメント**: レポート送信時、紐付けられた GitHub Issue へ進捗を知らせる自動コメントを投稿可能。
 
-### 5. 保存先ディレクトリの自由設定 (SETTINGS画面)
+### 5. 統合ダッシュボード & ガントチャート (BRIEFING & TIMELINE画面)
+- **MISSION BRIEFING (ダッシュボード)**: ローカルのタスクと GitHub Projects V2 の状況を横断的に把握できる統合画面。カンバンボード形式のステータス概要やアラート通知機能を提供。
+- **OPERATION TIMELINE (ガントチャート)**: GitHub Projects V2 の開始日・期限日をベースに、横スクロール可能なタイムライン上でアイテムのスケジュールを可視化。遅延タスクの赤色ハイライト等に対応。
+- **GitHub Activity 自動取得**: REPORT 画面のコンテキストメニューから、当日の GitHub アクティビティ（コミット、Issue の作成・コメントなど）を日報へ自動挿入可能。
+
+### 6. 保存先ディレクトリの自由設定 (SETTINGS画面)
 - Electron のネイティブ機能（フォルダピッカー）を活用し、タスク用MarkdownファイルおよびプロジェクトJSONを保存する **ルートディレクトリを自由に設定可能**。
 - `G:\My Drive\...` のような Google ドライブマウント領域や OneDrive などを指定することで、クラウド越しのバックアップ環境をシームレスに構築できます。
 
-### 6. フォントサイズ調整機能 (SETTINGS画面 & ショートカット)
+### 7. フォントサイズ調整機能 (SETTINGS画面 & ショートカット)
 - アプリ全体のフォントサイズ（12px 〜 32px）を動的に変更可能。
 - **ショートカットキー**:
   - `Ctrl` + `+` / `=` : 拡大 (+2px)
@@ -50,10 +55,11 @@ Progress Memo App は、Electron と Nuxt 3 を基盤として構築された、
   - `Ctrl` + `0` : リセット (16px)
 - SETTINGS画面の「INTERFACE & STARTUP」セクションからも数値を直接指定して変更・保存が可能です。
 
-### 7. 外部連携設定 (SETTINGS画面)
-- **GitHub PAT (Personal Access Token)**: Issue への自動コメント機能や、Issue のインポートに使用。
+### 8. 外部連携設定 (SETTINGS画面)
+- **GitHub PAT (Personal Access Token)**: Issue への自動コメント機能、Projects V2 の同期、Issue のインポートに使用。
 - **Google Chat Webhook**: 日報の直接送信用。
 - **GitHub Issue 自動コメントトグル**: 日報送信時の自動投稿をグローバルに ON/OFF 可能。
+- **起動画面の指定**: アプリ起動時の初期画面を TASKS / REPORT / BRIEFING / TIMELINE から選択可能。
 
 ## 🚀 開発（起動）方法
 このプロジェクトは開発段階です。ソースコード取得後、以下のコマンドで起動します。

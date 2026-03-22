@@ -538,6 +538,9 @@ onMounted(() => {
         } else if (startup === 'report') {
             router.replace('/report')
             return
+        } else if (startup === 'timeline') {
+            router.replace('/timeline')
+            return
         }
     }
     refresh()

@@ -151,7 +151,7 @@ const normalizeProjectItem = (item, projectTitle, projectNumber) => {
       if (fieldName.includes('start') || fieldName === '開始日') {
         startDate = fieldValue.date
       }
-      if (fieldName.includes('due') || fieldName.includes('end') || fieldName === '期限' || fieldName === '終了日') {
+      if (fieldName.includes('due') || fieldName.includes('end') || fieldName.includes('target') || fieldName.includes('deadline') || fieldName === '期限' || fieldName === '終了日') {
         dueDate = fieldValue.date
       }
     }

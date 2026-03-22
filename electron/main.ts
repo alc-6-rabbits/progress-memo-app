@@ -130,6 +130,11 @@ ipcMain.handle('safe-storage-decrypt', (event, encryptedHex: string) => {
     }
 })
 
+ipcMain.handle('open-external', async (event, url) => {
+    const { shell } = require('electron')
+    await shell.openExternal(url)
+})
+
 ipcMain.handle('save-markdown', async (event, filename: string, content: string, customDirPath?: string) => {
     try {
         const rootDir = customDirPath ? customDirPath : path.join(app.getAppPath(), 'content', 'tasks')

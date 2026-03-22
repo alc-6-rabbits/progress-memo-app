@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [1.4.0] - 2026-03-22
+### Added
+- **統合ダッシュボード機能 (Phase 2 & 3)**
+  - `useGitHubGraphQL` composable による GitHub Projects V2 サーチおよび連携機能追加。
+  - BRIEFING 画面の新規追加（ローカル/GitHub タスクの一元管理、カンバンボード型 Status Overview 対応）。
+  - OPERATION TIMELINE 画面の新規追加（ガントチャート、表示の調整、遅延アイテムのハイライト、プロジェクトフィルタ表示機能実装）。
+  - ナビゲーションバーの刷新および、起動画面設定に BRIEFING / TIMELINE オプションを追加。
+- **GitHub 連携の強化**
+  - REPORT画面のコンテキストメニューに「GitHub Activity を挿入」機能を追加（当日の活動ログを自動取得）。
+  - 外部リンクをOSのデフォルトブラウザで開く機能の実装（`openExternal` IPC 追加）。
+
 ## [1.3.0] - 2026-03-22
 ### Added
 - **REPORT画面の全面改修 (Phase 1b)**

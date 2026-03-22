@@ -10,13 +10,14 @@
             <span class="inline-block w-2 h-6 bg-ace-highlight"></span>
             <span>SYSTEM.MENU</span>
           </NuxtLink>
-          <nav class="space-x-6 font-mono text-sm tracking-widest">
-            <NuxtLink to="/briefing" class="hover:text-ace-highlight transition-colors">>> BRIEFING</NuxtLink>
-            <NuxtLink to="/" class="hover:text-ace-highlight transition-colors">>> TASKS</NuxtLink>
-            <NuxtLink to="/report" class="hover:text-ace-highlight transition-colors">>> REPORT</NuxtLink>
-            <NuxtLink to="/projects" class="hover:text-ace-highlight transition-colors">>> PROJECTS</NuxtLink>
-            <NuxtLink to="/settings" class="hover:text-ace-highlight transition-colors">>> CONFIG</NuxtLink>
-            <NuxtLink to="/new" class="ace-button ace-button-primary hover:text-ace-bg ml-4">INITIALIZE TASK</NuxtLink>
+          <nav class="space-x-4 font-mono text-sm tracking-widest flex items-center">
+            <NuxtLink to="/briefing" class="hover:text-ace-highlight transition-colors whitespace-nowrap">>> BRIEFING</NuxtLink>
+            <NuxtLink to="/" class="hover:text-ace-highlight transition-colors whitespace-nowrap">>> TASKS</NuxtLink>
+            <NuxtLink to="/timeline" class="hover:text-ace-highlight transition-colors whitespace-nowrap">>> TIMELINE</NuxtLink>
+            <NuxtLink to="/report" class="hover:text-ace-highlight transition-colors whitespace-nowrap">>> REPORT</NuxtLink>
+            <NuxtLink to="/projects" class="hover:text-ace-highlight transition-colors whitespace-nowrap">>> PROJECTS</NuxtLink>
+            <NuxtLink to="/settings" class="hover:text-ace-highlight transition-colors whitespace-nowrap">>> CONFIG</NuxtLink>
+            <NuxtLink to="/new" class="ace-button ace-button-primary hover:text-ace-bg ml-2 whitespace-nowrap">INITIALIZE TASK</NuxtLink>
           </nav>
         </div>
       </header>

@@ -122,6 +122,7 @@
           <select v-model="startupScreen" class="block w-full bg-ace-bg/80 border border-ace-border text-ace-highlight p-3 rounded-none outline-none font-mono text-sm leading-relaxed">
             <option value="briefing">BRIEFING DISPLAY ( /briefing )</option>
             <option value="tasks">TASKS DISPLAY ( / )</option>
+            <option value="timeline">TIMELINE DISPLAY ( /timeline )</option>
             <option value="report">REPORT DISPLAY ( /report )</option>
           </select>
         </div>
