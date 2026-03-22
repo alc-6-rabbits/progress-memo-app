@@ -65,6 +65,11 @@
         <div class="p-4 border-b border-white/10 shrink-0 h-14 flex items-center justify-between">
           <h2 class="text-sm font-bold tracking-widest text-ace-title drop-shadow-title">>> {{ currentTab.toUpperCase() }} TARGETS</h2>
           <div class="flex items-center space-x-4">
+            <!-- Tag Mode Toggle -->
+            <label class="flex items-center space-x-2 cursor-pointer group">
+              <input type="checkbox" v-model="groupByTag" class="form-checkbox bg-transparent border-ace-border text-ace-warning focus:ring-ace-warning w-3 h-3">
+              <span class="text-xs text-ace-text font-mono group-hover:text-ace-warning tracking-widest">BY TAG</span>
+            </label>
             <!-- Icebox Toggle (only show when icebox is selected) -->
             <label v-if="currentTab === 'icebox'" class="flex items-center space-x-2 cursor-pointer group">
               <input type="checkbox" v-model="showStaleIcebox" class="form-checkbox bg-transparent border-ace-border text-ace-highlight focus:ring-ace-highlight w-3 h-3">
@@ -83,29 +88,69 @@
             NO SIGNALS DETECTED.
           </div>
           
-          <div v-else v-for="group in groupedTasks" :key="group.name" class="mb-4">
-            <h3 class="text-xs font-bold text-ace-highlight border-b border-ace-border/30 pb-1 mb-2 flex items-center cursor-pointer hover:bg-white/5" @click="toggleProject(group.name)">
-              <span class="mr-2">{{ expandedProjects.includes(group.name) ? '▼' : '▶' }}</span>
-              <span class="bg-ace-highlight text-ace-bg px-1 mr-2 tracking-widest">{{ group.name === 'Inbox' ? 'UNCLASSIFIED' : 'PJ' }}</span>
-              {{ group.name }}
-            </h3>
-            
-            <ul v-show="expandedProjects.includes(group.name)" class="space-y-1 pl-4 border-l border-ace-border/30 ml-2">
-              <li v-for="task in group.tasks" :key="task._path">
-                <button 
-                  @click="selectedTask = task; isEditing = false"
-                  :class="[
-                    'w-full text-left text-xs font-mono py-2 px-2 transition-colors border-l-2',
-                    selectedTask?._path === task._path 
-                      ? 'bg-ace-highlight/20 border-ace-highlight text-white' 
-                      : 'border-transparent text-ace-text hover:bg-white/5 hover:border-ace-text'
-                  ]"
-                >
-                  {{ task.title }}
-                </button>
-              </li>
-            </ul>
-          </div>
+          <template v-if="!groupByTag">
+            <div v-for="group in groupedTasks" :key="group.name" class="mb-4">
+              <h3 class="text-xs font-bold text-ace-highlight border-b border-ace-border/30 pb-1 mb-2 flex items-center cursor-pointer hover:bg-white/5" @click="toggleProject(group.name)">
+                <span class="mr-2">{{ expandedProjects.includes(group.name) ? '▼' : '▶' }}</span>
+                <span class="bg-ace-highlight text-ace-bg px-1 mr-2 tracking-widest">{{ group.name === 'Inbox' ? 'UNCLASSIFIED' : 'PJ' }}</span>
+                {{ group.name }}
+              </h3>
+              
+              <ul v-show="expandedProjects.includes(group.name)" class="space-y-1 pl-4 border-l border-ace-border/30 ml-2">
+                <li v-for="task in group.tasks" :key="task._path">
+                  <button 
+                    @click="selectedTask = task; isEditing = false"
+                    :class="[
+                      'w-full text-left text-xs font-mono py-2 px-2 transition-colors border-l-2',
+                      selectedTask?._path === task._path 
+                        ? 'bg-ace-highlight/20 border-ace-highlight text-white' 
+                        : 'border-transparent text-ace-text hover:bg-white/5 hover:border-ace-text'
+                    ]"
+                  >
+                    {{ task.title }}
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </template>
+
+          <template v-else>
+            <div v-for="tagGroup in groupedTasksTagged" :key="tagGroup.tag" class="mb-6">
+              <!-- TAG HEADER -->
+              <h3 class="text-xs font-bold text-ace-warning border-b border-ace-warning/30 pb-1 mb-3 flex items-center cursor-pointer hover:bg-white/5" @click="toggleTag(tagGroup.tag)">
+                <span class="mr-2">{{ expandedTags.includes(tagGroup.tag) ? '▼' : '▶' }}</span>
+                <span class="bg-ace-warning text-ace-bg px-1 mr-2 tracking-widest text-[10px]">TAG</span>
+                {{ tagGroup.tag }}
+              </h3>
+
+              <!-- PROJECTS WITHIN TAG -->
+              <div v-show="expandedTags.includes(tagGroup.tag)" class="ml-4">
+                <div v-for="projectGroup in tagGroup.projects" :key="projectGroup.name" class="mb-3">
+                  <h4 class="text-xs font-bold text-ace-highlight border-b border-ace-border/30 pb-1 mb-2 flex items-center cursor-pointer hover:bg-white/5" @click="toggleProject(projectGroup.name)">
+                    <span class="mr-2">{{ expandedProjects.includes(projectGroup.name) ? '▼' : '▶' }}</span>
+                    <span class="bg-ace-highlight text-ace-bg px-1 mr-2 tracking-widest text-[10px]">PJ</span>
+                    {{ projectGroup.name }}
+                  </h4>
+
+                  <ul v-show="expandedProjects.includes(projectGroup.name)" class="space-y-1 pl-4 border-l border-ace-border/30 ml-2">
+                    <li v-for="task in projectGroup.tasks" :key="task._path">
+                      <button 
+                        @click="selectedTask = task; isEditing = false"
+                        :class="[
+                          'w-full text-left text-xs font-mono py-2 px-2 transition-colors border-l-2',
+                          selectedTask?._path === task._path 
+                            ? 'bg-ace-highlight/20 border-ace-highlight text-white' 
+                            : 'border-transparent text-ace-text hover:bg-white/5 hover:border-ace-text'
+                        ]"
+                      >
+                        {{ task.title }}
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -222,8 +267,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { marked } from 'marked'
+import { useProjects } from '~/composables/useProjects'
 
 const router = useRouter()
+const { projectsData, loadProjects, resolveProjectId } = useProjects()
 
 const tabs = [
   { label: 'In Progress', value: 'inProgress' },
@@ -233,14 +280,15 @@ const tabs = [
 
 const currentTab = ref('inProgress')
 const showStaleIcebox = ref(false)
+const groupByTag = ref(false)
 const allTasks = ref([])
 const pending = ref(true)
-const projectsData = ref({ project: {} })
 const sidebarExpanded = ref(false)
 
 // Selection & Editing state
 const selectedTask = ref(null)
 const expandedProjects = ref([])
+const expandedTags = ref([])
 const isEditing = ref(false)
 const editTitle = ref('')
 const editProject = ref('')
@@ -264,6 +312,14 @@ const toggleProject = (projectName) => {
     expandedProjects.value = expandedProjects.value.filter(p => p !== projectName)
   } else {
     expandedProjects.value.push(projectName)
+  }
+}
+
+const toggleTag = (tagName) => {
+  if (expandedTags.value.includes(tagName)) {
+    expandedTags.value = expandedTags.value.filter(t => t !== tagName)
+  } else {
+    expandedTags.value.push(tagName)
   }
 }
 
@@ -384,22 +440,9 @@ const saveEdit = async () => {
     if (window.electronAPI && window.electronAPI.saveMarkdown) {
       const customDir = localStorage.getItem('tasksDir') || undefined
       
-      // Resolve project ID and Name
-      let matchedId = null
+      // Resolve project ID and Name using composable
       const inputName = editProject.value || '未分類'
-      for (const [id, proj] of Object.entries(projectsData.value.project)) {
-        if (proj.name === inputName) {
-          matchedId = id
-          break
-        }
-      }
-      
-      if (!matchedId) {
-        const ids = Object.keys(projectsData.value.project).map(Number).filter(n => !isNaN(n))
-        matchedId = String(ids.length > 0 ? Math.max(...ids) + 1 : 1)
-        projectsData.value.project[matchedId] = { name: inputName }
-        await window.electronAPI.saveProjects(projectsData.value, customDir)
-      }
+      const matchedId = await resolveProjectId(inputName)
 
       const fullContent = `---
 id: "${selectedTask.value.id || ''}"
@@ -444,10 +487,7 @@ const refresh = async () => {
             const customDir = localStorage.getItem('tasksDir') || undefined
             
             // Also fetch projects datalink
-            if (window.electronAPI.getProjects) {
-              const pData = await window.electronAPI.getProjects(customDir)
-              if (pData && pData.project) projectsData.value = pData
-            }
+            await loadProjects()
 
             const data = await window.electronAPI.getAllMarkdowns(customDir)
             
@@ -460,6 +500,20 @@ const refresh = async () => {
             existingGroups.forEach(g => {
               if (!expandedProjects.value.includes(g)) expandedProjects.value.push(g)
             })
+
+            // Auto expand newly discovered tags
+            if (groupByTag.value) {
+                const allTagNames = new Set()
+                allTasks.value.forEach(t => {
+                    const pid = String(t.project_id)
+                    const project = projectsData.value.project[pid]
+                    const tags = (project && project.tags && project.tags.length > 0) ? project.tags : ['UNTAGGED']
+                    tags.forEach(tag => allTagNames.add(tag))
+                })
+                allTagNames.forEach(tag => {
+                    if (!expandedTags.value.includes(tag)) expandedTags.value.push(tag)
+                })
+            }
             
             // Re-bind selected Task reference if it existed
             if (selectedTask.value) {
@@ -477,9 +531,15 @@ const refresh = async () => {
 onMounted(() => {
     if (!sessionStorage.getItem('appStarted')) {
         sessionStorage.setItem('appStarted', 'true')
-        const startup = localStorage.getItem('startupScreen')
-        if (startup === 'report') {
+        const startup = localStorage.getItem('startupScreen') || 'tasks'
+        if (startup === 'briefing') {
+            router.replace('/briefing')
+            return
+        } else if (startup === 'report') {
             router.replace('/report')
+            return
+        } else if (startup === 'timeline') {
+            router.replace('/timeline')
             return
         }
     }
@@ -510,7 +570,7 @@ const filteredTasks = computed(() => {
   return filtered
 })
 
-const groupedTasks = computed(() => {
+const groupedTasksFlat = computed(() => {
   const groups = {}
   filteredTasks.value.forEach(t => {
     const p = t.project_name || 'Inbox'
@@ -525,6 +585,47 @@ const groupedTasks = computed(() => {
     if (b.name === 'Inbox') return -1
     return a.name.localeCompare(b.name)
   })
+})
+
+const groupedTasksByTag = computed(() => {
+  const tagGroups = {}
+
+  filteredTasks.value.forEach(t => {
+    const pid = String(t.project_id)
+    const project = projectsData.value.project[pid]
+    const tags = (project && project.tags && project.tags.length > 0)
+      ? project.tags
+      : ['UNTAGGED']
+    const pName = t.project_name || 'Inbox'
+
+    tags.forEach(tag => {
+      if (!tagGroups[tag]) tagGroups[tag] = {}
+      if (!tagGroups[tag][pName]) tagGroups[tag][pName] = []
+      tagGroups[tag][pName].push(t)
+    })
+  })
+
+  return Object.entries(tagGroups)
+    .map(([tag, projects]) => ({
+      tag,
+      projects: Object.entries(projects).map(([name, tasks]) => ({
+        name,
+        tasks
+      })).sort((a, b) => a.name.localeCompare(b.name))
+    }))
+    .sort((a, b) => {
+      if (a.tag === 'UNTAGGED') return 1
+      if (b.tag === 'UNTAGGED') return -1
+      return a.tag.localeCompare(b.tag)
+    })
+})
+
+const groupedTasks = computed(() => {
+  return groupByTag.value ? [] : groupedTasksFlat.value
+})
+
+const groupedTasksTagged = computed(() => {
+  return groupByTag.value ? groupedTasksByTag.value : []
 })
 
 const moveTo = async (task, newStatus) => {

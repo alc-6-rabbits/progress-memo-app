@@ -53,6 +53,32 @@
           <p class="text-xs text-slate-400 mt-2">Required for fetching issues from private repositories.</p>
         </div>
 
+        <div class="mb-4 border-t border-ace-border/30 pt-4">
+          <label class="block text-xs font-bold text-ace-text tracking-widest mb-2">GITHUB ISSUE AUTO-COMMENT</label>
+          <div class="flex items-center space-x-3">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                v-model="autoCommentOnIssue" 
+                class="sr-only peer"
+              >
+              <div class="w-9 h-5 bg-ace-bg border border-ace-border rounded-full peer 
+                          peer-checked:bg-ace-highlight/30 peer-checked:border-ace-highlight
+                          after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                          after:bg-ace-text after:rounded-full after:h-4 after:w-4 after:transition-all
+                          peer-checked:after:translate-x-full peer-checked:after:bg-ace-highlight">
+              </div>
+            </label>
+            <span class="text-sm text-ace-text font-mono">
+              {{ autoCommentOnIssue ? 'ENABLED' : 'DISABLED' }}
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-2">
+            When enabled, sending a daily report will automatically post progress comments 
+            to GitHub Issues linked to active tasks (requires PAT with 'repo' scope).
+          </p>
+        </div>
+
         <div class="mb-4">
           <label class="block text-xs font-bold text-ace-text tracking-widest mb-2">DEFAULT GITHUB REPOSITORY</label>
           <input 
@@ -94,7 +120,9 @@
         <div class="mb-4 mt-6 pt-4 border-t border-ace-border/30">
           <label class="block text-xs font-bold text-ace-text tracking-widest mb-2">DEFAULT STARTUP SCREEN</label>
           <select v-model="startupScreen" class="block w-full bg-ace-bg/80 border border-ace-border text-ace-highlight p-3 rounded-none outline-none font-mono text-sm leading-relaxed">
+            <option value="briefing">BRIEFING DISPLAY ( /briefing )</option>
             <option value="tasks">TASKS DISPLAY ( / )</option>
+            <option value="timeline">TIMELINE DISPLAY ( /timeline )</option>
             <option value="report">REPORT DISPLAY ( /report )</option>
           </select>
         </div>
@@ -118,6 +146,7 @@ import { ref, onMounted } from 'vue'
 const webhookUrl = ref('')
 const githubPat = ref('')
 const githubRepo = ref('')
+const autoCommentOnIssue = ref(false)
 const uiTheme = ref('default')
 const startupScreen = ref('tasks')
 const aceFontSize = ref(16)
@@ -142,6 +171,7 @@ onMounted(async () => {
   }
 
   githubRepo.value = localStorage.getItem('githubRepo') || ''
+  autoCommentOnIssue.value = localStorage.getItem('autoCommentOnIssue') === 'true'
   uiTheme.value = localStorage.getItem('uiTheme') || 'default'
   startupScreen.value = localStorage.getItem('startupScreen') || 'tasks'
   aceFontSize.value = parseInt(localStorage.getItem('aceFontSize') || '16', 10)
@@ -182,6 +212,7 @@ const saveSettings = async () => {
   localStorage.setItem('googleChatWebhook', finalWebhook)
   localStorage.setItem('githubPat', finalPat)
   localStorage.setItem('githubRepo', githubRepo.value)
+  localStorage.setItem('autoCommentOnIssue', autoCommentOnIssue.value.toString())
   localStorage.setItem('uiTheme', uiTheme.value)
   localStorage.setItem('startupScreen', startupScreen.value)
   localStorage.setItem('tasksDir', saveDirectory.value)

@@ -18,5 +18,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // SafeStorage API
     isSafeStorageAvailable: () => ipcRenderer.invoke('safe-storage-is-available'),
     encryptString: (plainText) => ipcRenderer.invoke('safe-storage-encrypt', plainText),
-    decryptString: (encryptedHex) => ipcRenderer.invoke('safe-storage-decrypt', encryptedHex)
+    decryptString: (encryptedHex) => ipcRenderer.invoke('safe-storage-decrypt', encryptedHex),
+    openExternal: (url) => ipcRenderer.invoke('open-external', url)
 })

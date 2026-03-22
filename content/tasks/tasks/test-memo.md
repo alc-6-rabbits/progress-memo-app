@@ -1,7 +1,8 @@
 ---
-title: "テストメモ"
-project: "App Setup"
-status: "inbox"
+title: テストメモ
+status: inbox
+project_id: '4'
+project_name: App Setup
 ---
 これはNuxt Contentのテストファイルです。
 デスクトップアプリとして表示されるか確認します。
