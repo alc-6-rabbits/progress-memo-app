@@ -85,10 +85,139 @@ export const useGitHubREST = () => {
     }
   }
 
+  /**
+   * 認証ユーザーのユーザー名を取得する
+   * @returns {Promise<string|null>} ユーザー名
+   */
+  const getAuthenticatedUser = async () => {
+    const pat = await getDecryptedPat()
+    if (!pat) return null
+
+    const response = await fetch('https://api.github.com/user', {
+      headers: getHeaders(pat)
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      return data.login
+    }
+    return null
+  }
+
+  /**
+   * ユーザーのイベントを取得する（当日分をフィルタリング）
+   * @param {string} since - ISO 8601 日付文字列（この日以降のイベントを取得）
+   * @returns {Promise<Array>} イベント配列
+   */
+  const fetchUserEvents = async (since) => {
+    const pat = await getDecryptedPat()
+    if (!pat) return []
+
+    const username = await getAuthenticatedUser()
+    if (!username) return []
+
+    const sinceDate = new Date(since)
+    sinceDate.setHours(0, 0, 0, 0)
+
+    const events = []
+    let page = 1
+    const maxPages = 3  // 最大3ページまで（APIレート節約）
+
+    while (page <= maxPages) {
+      const url = `https://api.github.com/users/${username}/events?per_page=30&page=${page}`
+      const response = await fetch(url, {
+        headers: getHeaders(pat)
+      })
+
+      if (!response.ok) break
+
+      const data = await response.json()
+      if (data.length === 0) break
+
+      for (const event of data) {
+        const eventDate = new Date(event.created_at)
+        if (eventDate < sinceDate) {
+          // 指定日より古いイベントに到達したら終了
+          return events
+        }
+        events.push(event)
+      }
+
+      page++
+    }
+
+    return events
+  }
+
+  /**
+   * イベント配列をマークダウンテキストに変換する
+   * @param {Array} events - GitHub Events API のレスポンス
+   * @returns {string} マークダウンテキスト
+   */
+  const formatEventsAsMarkdown = (events) => {
+    if (!events || events.length === 0) return '（当日のアクティビティはありません）'
+
+    const lines = ['*【GitHub Activity】*', '']
+    const grouped = {}
+
+    for (const event of events) {
+      const repo = event.repo?.name || 'unknown'
+      if (!grouped[repo]) grouped[repo] = []
+
+      let description = ''
+      switch (event.type) {
+        case 'PushEvent': {
+          const commits = event.payload?.commits || []
+          for (const commit of commits) {
+            description = `Push: ${commit.message.split('\n')[0]}`
+            grouped[repo].push(description)
+          }
+          continue  // 複数コミットを個別に追加済み
+        }
+        case 'IssuesEvent':
+          description = `Issue ${event.payload?.action}: #${event.payload?.issue?.number} ${event.payload?.issue?.title || ''}`
+          break
+        case 'IssueCommentEvent':
+          description = `Comment on #${event.payload?.issue?.number} ${event.payload?.issue?.title || ''}`
+          break
+        case 'PullRequestEvent':
+          description = `PR ${event.payload?.action}: #${event.payload?.pull_request?.number} ${event.payload?.pull_request?.title || ''}`
+          break
+        case 'PullRequestReviewEvent':
+          description = `Review on PR #${event.payload?.pull_request?.number}`
+          break
+        case 'CreateEvent':
+          description = `Created ${event.payload?.ref_type}: ${event.payload?.ref || ''}`
+          break
+        case 'DeleteEvent':
+          description = `Deleted ${event.payload?.ref_type}: ${event.payload?.ref || ''}`
+          break
+        default:
+          description = `${event.type.replace('Event', '')}`
+      }
+
+      if (description) grouped[repo].push(description)
+    }
+
+    for (const [repo, activities] of Object.entries(grouped)) {
+      const repoShort = repo.split('/')[1] || repo
+      lines.push(`*[${repoShort}]*`)
+      for (const act of activities) {
+        lines.push(`　・${act}`)
+      }
+      lines.push('')
+    }
+
+    return lines.join('\n')
+  }
+
   return {
     getDecryptedPat,
     getHeaders,
     postIssueComment,
-    parseIssueUrl
+    parseIssueUrl,
+    getAuthenticatedUser,
+    fetchUserEvents,
+    formatEventsAsMarkdown
   }
 }

@@ -120,6 +120,7 @@
         <div class="mb-4 mt-6 pt-4 border-t border-ace-border/30">
           <label class="block text-xs font-bold text-ace-text tracking-widest mb-2">DEFAULT STARTUP SCREEN</label>
           <select v-model="startupScreen" class="block w-full bg-ace-bg/80 border border-ace-border text-ace-highlight p-3 rounded-none outline-none font-mono text-sm leading-relaxed">
+            <option value="briefing">BRIEFING DISPLAY ( /briefing )</option>
             <option value="tasks">TASKS DISPLAY ( / )</option>
             <option value="report">REPORT DISPLAY ( /report )</option>
           </select>

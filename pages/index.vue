@@ -531,8 +531,11 @@ const refresh = async () => {
 onMounted(() => {
     if (!sessionStorage.getItem('appStarted')) {
         sessionStorage.setItem('appStarted', 'true')
-        const startup = localStorage.getItem('startupScreen')
-        if (startup === 'report') {
+        const startup = localStorage.getItem('startupScreen') || 'tasks'
+        if (startup === 'briefing') {
+            router.replace('/briefing')
+            return
+        } else if (startup === 'report') {
             router.replace('/report')
             return
         }

@@ -10,7 +10,8 @@
             <span class="inline-block w-2 h-6 bg-ace-highlight"></span>
             <span>SYSTEM.MENU</span>
           </NuxtLink>
-          <nav class="space-x-8 font-mono text-sm tracking-widest">
+          <nav class="space-x-6 font-mono text-sm tracking-widest">
+            <NuxtLink to="/briefing" class="hover:text-ace-highlight transition-colors">>> BRIEFING</NuxtLink>
             <NuxtLink to="/" class="hover:text-ace-highlight transition-colors">>> TASKS</NuxtLink>
             <NuxtLink to="/report" class="hover:text-ace-highlight transition-colors">>> REPORT</NuxtLink>
             <NuxtLink to="/projects" class="hover:text-ace-highlight transition-colors">>> PROJECTS</NuxtLink>

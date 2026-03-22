@@ -191,9 +191,14 @@
 
         <hr class="border-ace-border/30 my-1" />
 
-        <!-- GitHub Activity 挿入（Phase 2 プレースホルダー） -->
-        <button class="ctx-menu-item w-full opacity-50 cursor-not-allowed" disabled>
-          🔄 GitHub Activity を挿入（Phase 2）
+        <!-- GitHub Activity 挿入 -->
+        <button 
+          class="ctx-menu-item w-full" 
+          :class="{ 'opacity-50 cursor-not-allowed': isFetchingActivity }"
+          :disabled="isFetchingActivity"
+          @click="insertGitHubActivity"
+        >
+          {{ isFetchingActivity ? '🔄 取得中...' : '🔄 GitHub Activity を挿入' }}
         </button>
       </div>
     </Teleport>
@@ -278,7 +283,9 @@ const activeTasks = ref([])
 // ─── composables ─────────────────────────────────────────────────
 const { projectsData, loadProjects } = useProjects()
 const { convertToGoogleChat, renderGoogleChatPreview } = useGoogleChatMd()
-const { postIssueComment, parseIssueUrl } = useGitHubREST()
+const { postIssueComment, parseIssueUrl, fetchUserEvents, formatEventsAsMarkdown } = useGitHubREST()
+
+const isFetchingActivity = ref(false)
 
 // ─── MDエディタ ───────────────────────────────────────────────────
 const reportEditor = ref(null)
@@ -431,6 +438,40 @@ const insertTaskLine = (task) => {
     const newPos = pos + insert.length
     editor.setSelectionRange(newPos, newPos)
   })
+}
+
+/**
+ * GitHub Activity を取得してエディタのカーソル位置に挿入する
+ */
+const insertGitHubActivity = async () => {
+  const editor = reportEditor.value
+  if (!editor) return
+
+  isFetchingActivity.value = true
+  contextMenu.value.visible = false
+
+  try {
+    // targetReportDate をベースに当日のイベントを取得
+    const since = targetReportDate.value || new Date().toISOString().split('T')[0]
+    const events = await fetchUserEvents(since)
+    const markdown = formatEventsAsMarkdown(events)
+
+    // カーソル位置に挿入
+    const pos = editor.selectionStart
+    reportContent.value =
+      reportContent.value.substring(0, pos) + markdown + '\n' + reportContent.value.substring(pos)
+
+    nextTick(() => {
+      editor.focus()
+      const newPos = pos + markdown.length + 1
+      editor.setSelectionRange(newPos, newPos)
+    })
+  } catch (e) {
+    console.error('[Report] Failed to fetch GitHub activity:', e)
+    errorMsg.value = `GitHub Activity fetch failed: ${e.message}`
+  } finally {
+    isFetchingActivity.value = false
+  }
 }
 
 // ─── Webhook 送信 ─────────────────────────────────────────────────
