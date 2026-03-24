@@ -156,7 +156,7 @@ export const useGitHubREST = () => {
   }
 
   /**
-   * イベント配列をマークダウンテキストに変換する（重複排除・タイトル表示含む）
+   * イベント配列をマークダウンテキストに変換する（極限まで簡素化）
    * @param {Array} events - GitHub Events API のレスポンス
    * @returns {string} マークダウンテキスト
    */
@@ -171,9 +171,8 @@ export const useGitHubREST = () => {
       const repo = event.repo?.name || 'unknown'
       if (!repoGroups[repo]) {
         repoGroups[repo] = {
-          issues: {}, // { number: { action, title, type } }
-          commits: [], // [ messages ]
-          others: [] // [ descriptions ]
+          items: new Map(), // Map<string, string> (ID -> DisplayText)
+          commits: new Set() // Set<string>
         }
       }
 
@@ -184,7 +183,7 @@ export const useGitHubREST = () => {
         case 'PushEvent': {
           const commits = payload.commits || []
           for (const c of commits) {
-            group.commits.push(c.message.split('\n')[0])
+            group.commits.add(c.message.split('\n')[0])
           }
           break
         }
@@ -198,34 +197,12 @@ export const useGitHubREST = () => {
 
           const num = item.number
           const title = item.title
-          const action = payload.action || (event.type === 'IssueCommentEvent' ? 'commented' : 'updated')
-          const type = isPR ? 'PR' : 'Issue'
-
-          // 優先順位に基づいた更新 (closed/merged > opened > others)
-          if (!group.issues[num]) {
-            group.issues[num] = { action, title, type }
-          } else {
-            const current = group.issues[num].action
-            if (action === 'closed' || action === 'merged') {
-              group.issues[num].action = action
-            } else if (current !== 'closed' && current !== 'merged' && (action === 'opened' || action === 'reopened')) {
-              group.issues[num].action = action
-            }
-          }
+          
+          // #123 Title の形式で集約
+          group.items.set(num, `#${num} ${title}`)
           break
         }
-        case 'CreateEvent':
-          if (payload.ref_type === 'branch') {
-            group.others.push(`Created branch: ${payload.ref}`)
-          } else if (payload.ref_type === 'repository') {
-            group.others.push(`Created repository`)
-          }
-          break
-        case 'DeleteEvent':
-          if (payload.ref_type === 'branch') {
-            group.others.push(`Deleted branch: ${payload.ref}`)
-          }
-          break
+        // Branch, Create, Delete 等のイベントはユーザー要望により除外
       }
     }
 
@@ -234,35 +211,25 @@ export const useGitHubREST = () => {
       const repoShort = repo.split('/')[1] || repo
       lines.push(`*[${repoShort}]*`)
 
-      let hasActivity = false
+      let hasContent = false
 
-      // 1. Issues & PRs (集約済み)
-      for (const [num, info] of Object.entries(group.issues)) {
-        const actionLabel = info.action.charAt(0).toUpperCase() + info.action.slice(1)
-        lines.push(`　・${info.type} ${actionLabel}: #${num} ${info.title}`)
-        hasActivity = true
+      // 1. Issues & PRs
+      for (const displayText of group.items.values()) {
+        lines.push(`　・${displayText}`)
+        hasContent = true
       }
 
       // 2. Commits (Issue/PR に紐付かない作業の補完)
-      const uniqueCommits = [...new Set(group.commits)]
-      for (const msg of uniqueCommits) {
-        // コミットメッセージに Issue 番号 (#123) が含まれている場合は、既に Issue 側で表示されている可能性が高いためスキップを検討
-        // ただしユーザーの要望により、Issue がないリポジトリの活動を補完するために表示する
-        lines.push(`　・Push: ${msg}`)
-        hasActivity = true
-      }
-
-      // 3. Others (Branch等)
-      // Issue/PR の活動がある場合は、ブランチ操作はノイズになるため表示しない
-      if (!hasActivity || group.others.length < 5) {
-        const uniqueOthers = [...new Set(group.others)]
-        for (const other of uniqueOthers) {
-          lines.push(`　・${other}`)
-          hasActivity = true
+      for (const msg of group.commits) {
+        // コミットメッセージが既存の Issue タイトルと重複していないか簡易チェック
+        const isDuplicate = Array.from(group.items.values()).some(val => val.includes(msg))
+        if (!isDuplicate) {
+          lines.push(`　・${msg}`)
+          hasContent = true
         }
       }
 
-      if (hasActivity) lines.push('')
+      if (hasContent) lines.push('')
     }
 
     return lines.join('\n').trim()
