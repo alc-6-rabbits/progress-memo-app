@@ -435,7 +435,7 @@ const insertTaskLine = (task) => {
   if (!editor) return
 
   const pos = editor.selectionStart
-  const insert = `    - ${task.title}\n      `
+  const insert = `- ${task.title}\n`
 
   reportContent.value =
     reportContent.value.substring(0, pos) + insert + reportContent.value.substring(pos)

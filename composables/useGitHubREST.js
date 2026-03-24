@@ -211,13 +211,13 @@ export const useGitHubREST = () => {
     // マークダウンの組み立て
     for (const [repo, group] of Object.entries(repoGroups)) {
       const repoShort = repo.split('/')[1] || repo
-      lines.push(`*[${repoShort}]*`)
+      lines.push(`*【${repoShort}】*`)
 
       let hasContent = false
 
       // 1. Issues & PRs
       for (const displayText of group.items.values()) {
-        lines.push(`    - ${displayText}`)
+        lines.push(`- ${displayText}`)
         hasContent = true
       }
 
@@ -226,10 +226,12 @@ export const useGitHubREST = () => {
         // コミットメッセージが既存の Issue タイトルと重複していないか簡易チェック
         const isDuplicate = Array.from(group.items.values()).some(val => val.includes(msg))
         if (!isDuplicate) {
-          lines.push(`    - ${msg}`)
+          lines.push(`- ${msg}`)
           hasContent = true
         }
       }
+
+      if (hasContent) lines.push('')
     }
 
     return lines.join('\n').trim()
