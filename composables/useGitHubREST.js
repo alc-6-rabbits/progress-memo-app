@@ -183,7 +183,9 @@ export const useGitHubREST = () => {
         case 'PushEvent': {
           const commits = payload.commits || []
           for (const c of commits) {
-            group.commits.add(c.message.split('\n')[0])
+            if (c.message) {
+              group.commits.add(c.message.split('\n')[0])
+            }
           }
           break
         }
@@ -193,7 +195,7 @@ export const useGitHubREST = () => {
         case 'PullRequestReviewEvent': {
           const isPR = event.type.includes('PullRequest')
           const item = isPR ? payload.pull_request : payload.issue
-          if (!item) break
+          if (!item || !item.title) break // タイトルが取得できない場合はスキップ
 
           const num = item.number
           const title = item.title
