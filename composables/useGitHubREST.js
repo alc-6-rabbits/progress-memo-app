@@ -128,7 +128,7 @@ export const useGitHubREST = () => {
 
     const events = []
     let page = 1
-    const maxPages = 3  // 最大3ページまで（APIレート節約）
+    const maxPages = 3
 
     while (page <= maxPages) {
       const url = `https://api.github.com/users/${username}/events?per_page=30&page=${page}`
@@ -144,7 +144,6 @@ export const useGitHubREST = () => {
       for (const event of data) {
         const eventDate = new Date(event.created_at)
         if (eventDate < sinceDate) {
-          // 指定日より古いイベントに到達したら終了
           return events
         }
         events.push(event)
@@ -157,7 +156,7 @@ export const useGitHubREST = () => {
   }
 
   /**
-   * イベント配列をマークダウンテキストに変換する
+   * イベント配列をマークダウンテキストに変換する（重複排除・タイトル表示含む）
    * @param {Array} events - GitHub Events API のレスポンス
    * @returns {string} マークダウンテキスト
    */
@@ -165,57 +164,108 @@ export const useGitHubREST = () => {
     if (!events || events.length === 0) return '（当日のアクティビティはありません）'
 
     const lines = ['*【GitHub Activity】*', '']
-    const grouped = {}
+    const repoGroups = {}
 
+    // イベントの分類と集約
     for (const event of events) {
       const repo = event.repo?.name || 'unknown'
-      if (!grouped[repo]) grouped[repo] = []
+      if (!repoGroups[repo]) {
+        repoGroups[repo] = {
+          issues: {}, // { number: { action, title, type } }
+          commits: [], // [ messages ]
+          others: [] // [ descriptions ]
+        }
+      }
 
-      let description = ''
+      const group = repoGroups[repo]
+      const payload = event.payload || {}
+
       switch (event.type) {
         case 'PushEvent': {
-          const commits = event.payload?.commits || []
-          for (const commit of commits) {
-            description = `Push: ${commit.message.split('\n')[0]}`
-            grouped[repo].push(description)
+          const commits = payload.commits || []
+          for (const c of commits) {
+            group.commits.push(c.message.split('\n')[0])
           }
-          continue  // 複数コミットを個別に追加済み
+          break
         }
         case 'IssuesEvent':
-          description = `Issue ${event.payload?.action}: #${event.payload?.issue?.number} ${event.payload?.issue?.title || ''}`
-          break
         case 'IssueCommentEvent':
-          description = `Comment on #${event.payload?.issue?.number} ${event.payload?.issue?.title || ''}`
-          break
         case 'PullRequestEvent':
-          description = `PR ${event.payload?.action}: #${event.payload?.pull_request?.number} ${event.payload?.pull_request?.title || ''}`
+        case 'PullRequestReviewEvent': {
+          const isPR = event.type.includes('PullRequest')
+          const item = isPR ? payload.pull_request : payload.issue
+          if (!item) break
+
+          const num = item.number
+          const title = item.title
+          const action = payload.action || (event.type === 'IssueCommentEvent' ? 'commented' : 'updated')
+          const type = isPR ? 'PR' : 'Issue'
+
+          // 優先順位に基づいた更新 (closed/merged > opened > others)
+          if (!group.issues[num]) {
+            group.issues[num] = { action, title, type }
+          } else {
+            const current = group.issues[num].action
+            if (action === 'closed' || action === 'merged') {
+              group.issues[num].action = action
+            } else if (current !== 'closed' && current !== 'merged' && (action === 'opened' || action === 'reopened')) {
+              group.issues[num].action = action
+            }
+          }
           break
-        case 'PullRequestReviewEvent':
-          description = `Review on PR #${event.payload?.pull_request?.number}`
-          break
+        }
         case 'CreateEvent':
-          description = `Created ${event.payload?.ref_type}: ${event.payload?.ref || ''}`
+          if (payload.ref_type === 'branch') {
+            group.others.push(`Created branch: ${payload.ref}`)
+          } else if (payload.ref_type === 'repository') {
+            group.others.push(`Created repository`)
+          }
           break
         case 'DeleteEvent':
-          description = `Deleted ${event.payload?.ref_type}: ${event.payload?.ref || ''}`
+          if (payload.ref_type === 'branch') {
+            group.others.push(`Deleted branch: ${payload.ref}`)
+          }
           break
-        default:
-          description = `${event.type.replace('Event', '')}`
       }
-
-      if (description) grouped[repo].push(description)
     }
 
-    for (const [repo, activities] of Object.entries(grouped)) {
+    // マークダウンの組み立て
+    for (const [repo, group] of Object.entries(repoGroups)) {
       const repoShort = repo.split('/')[1] || repo
       lines.push(`*[${repoShort}]*`)
-      for (const act of activities) {
-        lines.push(`　・${act}`)
+
+      let hasActivity = false
+
+      // 1. Issues & PRs (集約済み)
+      for (const [num, info] of Object.entries(group.issues)) {
+        const actionLabel = info.action.charAt(0).toUpperCase() + info.action.slice(1)
+        lines.push(`　・${info.type} ${actionLabel}: #${num} ${info.title}`)
+        hasActivity = true
       }
-      lines.push('')
+
+      // 2. Commits (Issue/PR に紐付かない作業の補完)
+      const uniqueCommits = [...new Set(group.commits)]
+      for (const msg of uniqueCommits) {
+        // コミットメッセージに Issue 番号 (#123) が含まれている場合は、既に Issue 側で表示されている可能性が高いためスキップを検討
+        // ただしユーザーの要望により、Issue がないリポジトリの活動を補完するために表示する
+        lines.push(`　・Push: ${msg}`)
+        hasActivity = true
+      }
+
+      // 3. Others (Branch等)
+      // Issue/PR の活動がある場合は、ブランチ操作はノイズになるため表示しない
+      if (!hasActivity || group.others.length < 5) {
+        const uniqueOthers = [...new Set(group.others)]
+        for (const other of uniqueOthers) {
+          lines.push(`　・${other}`)
+          hasActivity = true
+        }
+      }
+
+      if (hasActivity) lines.push('')
     }
 
-    return lines.join('\n')
+    return lines.join('\n').trim()
   }
 
   return {
