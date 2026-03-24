@@ -107,11 +107,12 @@
           </div>
         </div>
 
-        <!-- PREVIEW タブ: 生テキストプレビュー -->
+        <!-- PREVIEW タブ: レンダリング済みプレビュー -->
         <div
           v-if="activeTab === 'preview'"
-          class="flex-grow overflow-y-auto font-sans text-xs whitespace-pre-wrap p-4 border border-ace-highlight/30 text-green-400 relative z-10 bg-black/50 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)]"
-        >{{ reportContent }}</div>
+          class="flex-grow overflow-y-auto p-4 border border-ace-highlight/30 text-ace-text relative z-10 bg-black/50 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)] prose prose-invert max-w-none"
+          v-html="renderedReportHtml"
+        ></div>
 
         <!-- GOOGLE CHAT タブ: Google Chat 風プレビュー -->
         <div
@@ -285,8 +286,14 @@ const activeTasks = ref([])
 const { projectsData, loadProjects } = useProjects()
 const { convertToGoogleChat, renderGoogleChatPreview } = useGoogleChatMd()
 const { postIssueComment, parseIssueUrl, fetchUserEvents, formatEventsAsMarkdown } = useGitHubREST()
+import { marked } from 'marked'
 
 const isFetchingActivity = ref(false)
+
+// ─── レンダリング ────────────────────────────────────────────────
+const renderedReportHtml = computed(() => {
+  return marked.parse(reportContent.value || '')
+})
 
 // ─── MDエディタ ───────────────────────────────────────────────────
 const reportEditor = ref(null)
@@ -428,7 +435,7 @@ const insertTaskLine = (task) => {
   if (!editor) return
 
   const pos = editor.selectionStart
-  const insert = `　・${task.title}\n　　`
+  const insert = `    - ${task.title}\n      `
 
   reportContent.value =
     reportContent.value.substring(0, pos) + insert + reportContent.value.substring(pos)

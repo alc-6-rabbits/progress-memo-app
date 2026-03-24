@@ -163,7 +163,7 @@ export const useGitHubREST = () => {
   const formatEventsAsMarkdown = (events) => {
     if (!events || events.length === 0) return '（当日のアクティビティはありません）'
 
-    const lines = ['*【GitHub Activity】*', '']
+    const lines = []
     const repoGroups = {}
 
     // イベントの分類と集約
@@ -217,7 +217,7 @@ export const useGitHubREST = () => {
 
       // 1. Issues & PRs
       for (const displayText of group.items.values()) {
-        lines.push(`　・${displayText}`)
+        lines.push(`    - ${displayText}`)
         hasContent = true
       }
 
@@ -226,12 +226,10 @@ export const useGitHubREST = () => {
         // コミットメッセージが既存の Issue タイトルと重複していないか簡易チェック
         const isDuplicate = Array.from(group.items.values()).some(val => val.includes(msg))
         if (!isDuplicate) {
-          lines.push(`　・${msg}`)
+          lines.push(`    - ${msg}`)
           hasContent = true
         }
       }
-
-      if (hasContent) lines.push('')
     }
 
     return lines.join('\n').trim()

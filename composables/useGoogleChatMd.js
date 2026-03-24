@@ -29,8 +29,8 @@ export const useGoogleChatMd = () => {
       .replace(/\*\*(.+?)\*\*/g, '*$1*')
       // Strikethrough: ~~text~~ → ~text~
       .replace(/~~(.+?)~~/g, '~$1~')
-      // リスト記法: - text → ・text（全角ドット）
-      .replace(/^- /gm, '・')
+      // リスト記法: "    - " or "- " → ・text（全角ドット）
+      .replace(/^\s*- /gm, '・')
       // 見出し記法を除去: # heading → heading（装飾が効かないため）
       .replace(/^#{1,6}\s+/gm, '')
       // 引用記法: > text → ＞ text
