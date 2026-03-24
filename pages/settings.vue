@@ -50,7 +50,17 @@
             class="block w-full ace-input bg-ace-bg/50 p-3 border border-ace-border focus:border-ace-highlight focus:ring-1 focus:ring-ace-highlight transition-all" 
             placeholder="ghp_xxxxxxxxxxxx"
           >
-          <p class="text-xs text-slate-400 mt-2">Required for fetching issues from private repositories.</p>
+          <p class="text-[10px] mt-2 flex items-center space-x-2">
+            <span class="text-ace-text tracking-widest uppercase">Status:</span>
+            <span v-if="isValidatingUser" class="text-ace-warning animate-pulse">VALIDATING...</span>
+            <span v-else-if="connectedUser" class="text-ace-highlight font-bold flex items-center">
+              <img v-if="connectedUser.avatar_url" :src="connectedUser.avatar_url" class="w-4 h-4 rounded-full mr-1 border border-ace-highlight/50">
+              CONNECTED AS: {{ connectedUser.login }}
+            </span>
+            <span v-else-if="githubPat" class="text-red-400">INVALID OR EXPIRED TOKEN</span>
+            <span v-else class="text-slate-500">NOT CONNECTED</span>
+          </p>
+          <p class="text-xs text-slate-400 mt-2">Required for fetching issues and activity from GitHub.</p>
         </div>
 
         <div class="mb-4 border-t border-ace-border/30 pt-4">
@@ -142,6 +152,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useGitHubREST } from '~/composables/useGitHubREST'
+
+const { getAuthenticatedUser } = useGitHubREST()
+
+const connectedUser = ref(null)
+const isValidatingUser = ref(false)
 
 const webhookUrl = ref('')
 const githubPat = ref('')
@@ -179,7 +195,29 @@ onMounted(async () => {
   
   isInitializing.value = false
   console.log('[Settings] Initialization complete.')
+  
+  if (githubPat.value) {
+    checkGitHubUser()
+  }
 })
+
+const checkGitHubUser = async () => {
+  if (!githubPat.value) {
+    connectedUser.value = null
+    return
+  }
+  
+  isValidatingUser.value = true
+  const res = await getAuthenticatedUser()
+  isValidatingUser.value = false
+  
+  if (res.success) {
+    connectedUser.value = res
+  } else {
+    connectedUser.value = null
+    console.error('[Settings] GitHub user check failed:', res.error)
+  }
+}
 
 const selectDir = async () => {
     try {
@@ -217,6 +255,9 @@ const saveSettings = async () => {
   localStorage.setItem('startupScreen', startupScreen.value)
   localStorage.setItem('tasksDir', saveDirectory.value)
   localStorage.setItem('aceFontSize', aceFontSize.value.toString())
+  
+  // Re-validate user after saving new PAT
+  await checkGitHubUser()
   
   document.documentElement.setAttribute('data-theme', uiTheme.value)
   document.documentElement.style.setProperty('--ace-base-font-size', aceFontSize.value + 'px')

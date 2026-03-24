@@ -86,22 +86,28 @@ export const useGitHubREST = () => {
   }
 
   /**
-   * 認証ユーザーのユーザー名を取得する
-   * @returns {Promise<string|null>} ユーザー名
+   * 認証ユーザーの詳細情報を取得する
+   * @returns {Promise<Object>} { success: boolean, login?: string, avatar_url?: string, error?: string }
    */
   const getAuthenticatedUser = async () => {
-    const pat = await getDecryptedPat()
-    if (!pat) return null
+    try {
+      const pat = await getDecryptedPat()
+      if (!pat) return { success: false, error: 'PAT not found' }
 
-    const response = await fetch('https://api.github.com/user', {
-      headers: getHeaders(pat)
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      return data.login
+      const response = await fetch('https://api.github.com/user', {
+        headers: getHeaders(pat)
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        return { success: true, login: data.login, avatar_url: data.avatar_url }
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        return { success: false, error: `${response.status}: ${errorData.message || response.statusText}` }
+      }
+    } catch (error) {
+      return { success: false, error: error.message }
     }
-    return null
   }
 
   /**
@@ -113,8 +119,9 @@ export const useGitHubREST = () => {
     const pat = await getDecryptedPat()
     if (!pat) return []
 
-    const username = await getAuthenticatedUser()
-    if (!username) return []
+    const userRes = await getAuthenticatedUser()
+    if (!userRes.success) return []
+    const username = userRes.login
 
     const sinceDate = new Date(since)
     sinceDate.setHours(0, 0, 0, 0)

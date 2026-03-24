@@ -268,7 +268,8 @@ import { useGitHubREST } from '~/composables/useGitHubREST'
 // ─── 既存の状態管理 ───────────────────────────────────────────────
 const pickerInput = ref(null)
 const webhookUrl = ref('')
-const targetReportDate = ref(new Date().toISOString().split('T')[0])
+const today = new Date()
+const targetReportDate = ref(`${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`)
 const isSending = ref(false)
 const isDistributing = ref(false)
 const isSavingAccumulation = ref(false)
