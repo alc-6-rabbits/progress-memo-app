@@ -111,11 +111,12 @@ export const useGitHubREST = () => {
   }
 
   /**
-   * ユーザーのイベントを取得する（当日分をフィルタリング）
+   * ユーザーのイベントを取得する（期間内をフィルタリング）
    * @param {string} since - ISO 8601 日付文字列（この日以降のイベントを取得）
+   * @param {string} [until] - ISO 8601 日付文字列（この日以前のイベントを取得）
    * @returns {Promise<Array>} イベント配列
    */
-  const fetchUserEvents = async (since) => {
+  const fetchUserEvents = async (since, until) => {
     const pat = await getDecryptedPat()
     if (!pat) return []
 
@@ -125,13 +126,16 @@ export const useGitHubREST = () => {
 
     const sinceDate = new Date(since)
     sinceDate.setHours(0, 0, 0, 0)
+    
+    let untilDate = until ? new Date(until) : new Date()
+    untilDate.setHours(23, 59, 59, 999)
 
     const events = []
     let page = 1
-    const maxPages = 3
+    const maxPages = 5 // 週報用に少し多めに取得可能にする
 
     while (page <= maxPages) {
-      const url = `https://api.github.com/users/${username}/events?per_page=30&page=${page}`
+      const url = `https://api.github.com/users/${username}/events?per_page=100&page=${page}`
       const response = await fetch(url, {
         headers: getHeaders(pat)
       })
@@ -143,9 +147,17 @@ export const useGitHubREST = () => {
 
       for (const event of data) {
         const eventDate = new Date(event.created_at)
+        
+        // sinceDate より古いイベントに到達したら終了
         if (eventDate < sinceDate) {
           return events
         }
+
+        // untilDate より新しいイベントはスキップ
+        if (eventDate > untilDate) {
+          continue
+        }
+
         events.push(event)
       }
 
@@ -161,7 +173,7 @@ export const useGitHubREST = () => {
    * @returns {string} マークダウンテキスト
    */
   const formatEventsAsMarkdown = (events) => {
-    if (!events || events.length === 0) return '（当日のアクティビティはありません）'
+    if (!events || events.length === 0) return '（期間内のアクティビティはありません）'
 
     const lines = []
     const repoGroups = {}
@@ -171,7 +183,7 @@ export const useGitHubREST = () => {
       const repo = event.repo?.name || 'unknown'
       if (!repoGroups[repo]) {
         repoGroups[repo] = {
-          items: new Map(), // Map<string, string> (ID -> DisplayText)
+          items: new Map(), // Map<number, string> (ID -> DisplayText)
           commits: new Set() // Set<string>
         }
       }
@@ -204,7 +216,6 @@ export const useGitHubREST = () => {
           group.items.set(num, `#${num} ${title}`)
           break
         }
-        // Branch, Create, Delete 等のイベントはユーザー要望により除外
       }
     }
 
@@ -215,8 +226,12 @@ export const useGitHubREST = () => {
 
       let hasContent = false
 
-      // 1. Issues & PRs
-      for (const displayText of group.items.values()) {
+      // 1. Issues & PRs (Issue番号の昇順でソート)
+      const sortedItems = Array.from(group.items.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(entry => entry[1])
+
+      for (const displayText of sortedItems) {
         lines.push(`- ${displayText}`)
         hasContent = true
       }
