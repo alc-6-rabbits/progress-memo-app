@@ -11,10 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getProjects: (customDirPath) => ipcRenderer.invoke('get-projects', customDirPath),
     saveProjects: (data, customDirPath) => ipcRenderer.invoke('save-projects', data, customDirPath),
     selectDirectory: () => ipcRenderer.invoke('select-directory'),
-    appendAccumulation: (items, customDirPath) => ipcRenderer.invoke('append-accumulation', items, customDirPath),
-    distributeAccumulation: (customDirPath) => ipcRenderer.invoke('distribute-accumulation', customDirPath),
-    readAccumulation: (customDirPath) => ipcRenderer.invoke('read-accumulation', customDirPath),
-    writeAccumulation: (content, customDirPath) => ipcRenderer.invoke('write-accumulation', content, customDirPath),
+    saveWeeklyReport: (content, customDirPath) => ipcRenderer.invoke('save-weekly-report', content, customDirPath),
     // SafeStorage API
     isSafeStorageAvailable: () => ipcRenderer.invoke('safe-storage-is-available'),
     encryptString: (plainText) => ipcRenderer.invoke('safe-storage-encrypt', plainText),

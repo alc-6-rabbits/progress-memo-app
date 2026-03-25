@@ -76,7 +76,7 @@
               PREVIEW
             </button>
 
-            <!-- Google Chat モードタブ -->
+            <!-- GOOGLE CHAT モードタブ -->
             <button
               @click="activeTab = 'gchat'"
               class="px-4 py-2 font-bold tracking-widest text-xs transition-colors border border-b-0 rounded-t-sm"
@@ -84,24 +84,12 @@
             >
               GOOGLE CHAT
             </button>
-
-            <!-- ACCUMULATED LOGS タブ（既存を維持） -->
-            <button
-              @click="activeTab = 'accumulation'"
-              class="px-4 py-2 font-bold tracking-widest text-xs transition-colors border border-b-0 rounded-t-sm flex items-center"
-              :class="activeTab === 'accumulation' ? 'bg-ace-highlight text-black border-ace-highlight' : 'bg-transparent text-ace-text border-transparent hover:bg-white/10'"
-            >
-              ACCUMULATED LOGS
-            </button>
           </div>
           <div class="flex space-x-2 pb-2">
-            <button v-if="activeTab === 'accumulation'" @click="saveAccumulation" class="ace-button border-ace-text text-ace-text hover:bg-ace-highlight hover:text-black hover:border-ace-highlight" :disabled="isSavingAccumulation">
-              {{ isSavingAccumulation ? 'SAVING...' : 'SAVE CHANGES' }}
+            <button @click="saveAsWeeklyReport" class="ace-button border-ace-text text-ace-text hover:bg-ace-highlight hover:text-black hover:border-ace-highlight" :disabled="isSavingReport">
+              {{ isSavingReport ? 'SAVING...' : 'SAVE WEEKLY >>' }}
             </button>
-            <button @click="saveProgressToTasks" class="ace-button ace-button-warning text-black hover:bg-white hover:text-black" :disabled="isDistributing">
-              {{ isDistributing ? 'SAVING...' : 'SAVE TO TASKS >>' }}
-            </button>
-            <button v-if="activeTab === 'preview' || activeTab === 'gchat'" @click="sendWebhook" class="ace-button ace-button-primary border-white text-white hover:bg-white hover:text-black" :disabled="isSending">
+            <button @click="sendWebhook" class="ace-button ace-button-primary border-white text-white hover:bg-white hover:text-black" :disabled="isSending">
               {{ isSending ? 'TRANSMITTING...' : 'INITIATE UPLINK >>' }}
             </button>
           </div>
@@ -120,16 +108,6 @@
           class="flex-grow overflow-y-auto relative z-10 gchat-preview"
           v-html="googleChatPreviewHtml"
         ></div>
-
-        <!-- ACCUMULATED LOGS タブ（既存を維持） -->
-        <div v-else class="flex-grow flex flex-col relative z-10 w-full">
-          <textarea
-            v-model="accumulationText"
-            class="flex-grow w-full bg-black/50 p-4 font-sans text-xs text-ace-highlight focus:outline-none focus:border-ace-highlight border border-ace-border/30 resize-none shadow-[inset_0_0_10px_rgba(0,255,0,0.1)] whitespace-pre overflow-auto"
-            spellcheck="false"
-            placeholder="No accumulation logs found."
-          ></textarea>
-        </div>
 
         <p v-if="successMsg" class="text-ace-highlight text-sm mt-4 font-bold tracking-widest relative z-10">{{ successMsg }}</p>
         <p v-if="errorMsg" class="text-red-400 text-sm mt-4 font-bold tracking-widest relative z-10">{{ errorMsg }}</p>
@@ -272,14 +250,13 @@ const webhookUrl = ref('')
 const today = new Date()
 const targetReportDate = ref(`${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`)
 const isSending = ref(false)
-const isDistributing = ref(false)
-const isSavingAccumulation = ref(false)
+const isSavingReport = ref(false)
 const successMsg = ref('')
 const errorMsg = ref('')
 const isInitializing = ref(true)
 
 const activeTab = ref('preview')
-const accumulationText = ref('')
+const allTasks = ref([])
 const activeTasks = ref([])
 
 // ─── composables ─────────────────────────────────────────────────
@@ -335,53 +312,122 @@ const insertMarkdown = (type) => {
 }
 
 /**
+ * 日報用：指定日のタスク取得
+ */
+const getTasksByDate = (dateStr) => {
+  const target = new Date(dateStr)
+  target.setHours(0,0,0,0)
+  const next = new Date(target)
+  next.setDate(target.getDate() + 1)
+
+  return allTasks.value.filter(t => {
+    if (!t.updated_at) return false
+    const updated = new Date(t.updated_at)
+    return updated >= target && updated < next
+  })
+}
+
+/**
+ * 週報用：期間内のタスク取得
+ */
+const getTasksByRange = (start, end) => {
+  const s = new Date(start)
+  s.setHours(0,0,0,0)
+  const e = new Date(end)
+  e.setHours(23,59,59,999)
+
+  return allTasks.value.filter(t => {
+    if (!t.updated_at) return false
+    const updated = new Date(t.updated_at)
+    return updated >= s && updated <= e
+  })
+}
+
+/**
  * 日報テンプレートをカーソル位置に挿入する
  */
-const insertDailyTemplate = () => {
-  const dateStr = targetReportDate.value.replace(/-/g, '/')
-  const template = `【日報　${dateStr}】\n\n\n以上です。`
+const insertDailyTemplate = async () => {
+  isFetchingActivity.value = true
+  try {
+    const dateStr = targetReportDate.value.replace(/-/g, '/')
+    
+    // GitHub履歴の取得
+    const events = await fetchUserEvents(dateStr)
+    const githubMd = formatEventsAsMarkdown(events)
 
-  const editor = reportEditor.value
-  if (!editor) return
+    // ローカルタスクの取得
+    const dailyTasks = getTasksByDate(dateStr)
+    const tasksMd = dailyTasks.length > 0 
+      ? dailyTasks.map(t => `- [${t.project_name}] ${t.title}`).join('\n')
+      : '（記録されたタスク更新はありません）'
 
-  const pos = editor.selectionStart
-  reportContent.value =
-    reportContent.value.substring(0, pos) + template + reportContent.value.substring(pos)
+    const template = `【日報　${dateStr}】\n\n## 1. 本日の実績\n### [GitHub Activity]\n${githubMd}\n\n### [Local Tasks]\n${tasksMd}\n\n## 2. 明日の予定\n\n以上です。`
 
-  nextTick(() => {
-    editor.focus()
-    // カーソルを2つ目の改行（本文入力位置）に移動
-    const newPos = pos + `【日報　${dateStr}】\n\n`.length
-    editor.setSelectionRange(newPos, newPos)
-  })
+    const editor = reportEditor.value
+    if (!editor) return
+
+    const pos = editor.selectionStart
+    reportContent.value =
+      reportContent.value.substring(0, pos) + template + reportContent.value.substring(pos)
+
+    nextTick(() => {
+      editor.focus()
+      const newPos = pos + template.indexOf('## 2. 明日の予定\n') + '## 2. 明日の予定\n'.length
+      editor.setSelectionRange(newPos, newPos)
+    })
+  } catch (e) {
+    errorMsg.value = `Failed to generate daily report: ${e.message}`
+  } finally {
+    isFetchingActivity.value = false
+  }
 }
 
 /**
  * 週報テンプレートをカーソル位置に挿入する（月〜金の週範囲を自動計算）
  */
-const insertWeeklyTemplate = () => {
-  const now = new Date(targetReportDate.value)
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - now.getDay() + 1)
-  const friday = new Date(monday)
-  friday.setDate(monday.getDate() + 4)
+const insertWeeklyTemplate = async () => {
+  isFetchingActivity.value = true
+  try {
+    const now = new Date(targetReportDate.value)
+    const monday = new Date(now)
+    monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1))
+    const friday = new Date(monday)
+    friday.setDate(monday.getDate() + 4)
 
-  const format = (d) =>
-    `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+    const format = (d) =>
+      `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
 
-  const template = `【週報　${format(monday)} 〜 ${format(friday)}】\n\n\n以上です。`
+    const startStr = format(monday)
+    const endStr = format(friday)
 
-  const editor = reportEditor.value
-  if (!editor) return
-  const pos = editor.selectionStart
-  reportContent.value =
-    reportContent.value.substring(0, pos) + template + reportContent.value.substring(pos)
+    // GitHub履歴の取得
+    const events = await fetchUserEvents(startStr, endStr)
+    const githubMd = formatEventsAsMarkdown(events)
 
-  nextTick(() => {
-    editor.focus()
-    const newPos = pos + `【週報　${format(monday)} 〜 ${format(friday)}】\n\n`.length
-    editor.setSelectionRange(newPos, newPos)
-  })
+    // ローカルタスクの取得
+    const weeklyTasks = getTasksByRange(startStr, endStr)
+    const tasksMd = weeklyTasks.length > 0 
+      ? weeklyTasks.map(t => `- [${t.project_name}] ${t.title} (${t.status})`).join('\n')
+      : '（記録されたタスク更新はありません）'
+
+    const template = `# 週報 (${startStr} 〜 ${endStr})\n\n## 1. 今週の実績\n### [GitHub Activity]\n${githubMd}\n\n### [Local Tasks]\n${tasksMd}\n\n## 2. 来週の予定\n${activeTasks.value.map(t => `- [${t.project_name}] ${t.title}`).join('\n')}\n\n## 3. 特記事項 / 定例メモ\n\n以上です。`
+
+    const editor = reportEditor.value
+    if (!editor) return
+    const pos = editor.selectionStart
+    reportContent.value =
+      reportContent.value.substring(0, pos) + template + reportContent.value.substring(pos)
+
+    nextTick(() => {
+      editor.focus()
+      const newPos = pos + template.indexOf('## 3. 特記事項 / 定例メモ\n') + '## 3. 特記事項 / 定例メモ\n'.length
+      editor.setSelectionRange(newPos, newPos)
+    })
+  } catch (e) {
+    errorMsg.value = `Failed to generate weekly report: ${e.message}`
+  } finally {
+    isFetchingActivity.value = false
+  }
 }
 
 // ─── Google Chat プレビュー ────────────────────────────────────────
@@ -505,31 +551,11 @@ const sendWebhook = async () => {
 
     if (response.ok) {
       successMsg.value = 'Report sent to Google Chat successfully!'
-
-      // アキュムレーション処理（reportContent 全文を日報ログとして追記）
-      if (window.electronAPI && window.electronAPI.writeAccumulation) {
-        try {
-          const customDir = localStorage.getItem('tasksDir') || undefined
-          const today = new Date().toLocaleDateString('ja-JP', {
-            year: 'numeric', month: '2-digit', day: '2-digit'
-          })
-
-          const res = await window.electronAPI.readAccumulation(customDir)
-          let existing = res.success ? res.content : ''
-          if (existing.trim()) existing += '\n\n'
-          existing += `## 日報ログ [${today}]\n${reportContent.value}`
-
-          await window.electronAPI.writeAccumulation(existing, customDir)
-          successMsg.value = 'Report sent and successfully accumulated locally!'
-
-          // Issue 自動コメント (FR-007)
-          const autoComment = localStorage.getItem('autoCommentOnIssue') === 'true'
-          if (autoComment && activeTasks.value.length > 0) {
-            await postIssueComments()
-          }
-        } catch (e) {
-          console.error('Accumulation error', e)
-        }
+      
+      // Issue 自動コメント (FR-007)
+      const autoComment = localStorage.getItem('autoCommentOnIssue') === 'true'
+      if (autoComment && activeTasks.value.length > 0) {
+        await postIssueComments()
       }
     } else {
       errorMsg.value = `Failed to send: ${response.statusText}`
@@ -610,74 +636,29 @@ const postIssueComments = async () => {
   }
 }
 
-// ─── アキュムレーション操作（既存を維持） ───────────────────────────
-const saveAccumulation = async () => {
-  if (window.electronAPI && window.electronAPI.writeAccumulation) {
-    isSavingAccumulation.value = true
-    successMsg.value = ''
-    errorMsg.value = ''
-    const customDir = localStorage.getItem('tasksDir') || undefined
-    const res = await window.electronAPI.writeAccumulation(accumulationText.value, customDir)
-    isSavingAccumulation.value = false
-    if (res.success) {
-      successMsg.value = 'Accumulation logs saved successfully!'
-      setTimeout(() => {
-        if (successMsg.value === 'Accumulation logs saved successfully!') successMsg.value = ''
-      }, 3000)
-    } else {
-      errorMsg.value = 'Failed to save accumulation: ' + res.error
-    }
-  }
-}
-
-const loadAccumulation = async () => {
-  if (window.electronAPI && window.electronAPI.readAccumulation) {
-    const customDir = localStorage.getItem('tasksDir') || undefined
-    const res = await window.electronAPI.readAccumulation(customDir)
-    if (res.success) {
-      accumulationText.value = res.content
-    } else {
-      console.error('Failed to load accumulation:', res.error)
-    }
-  }
-}
-
-watch(activeTab, (newTab) => {
-  if (newTab === 'accumulation') {
-    loadAccumulation()
-  }
-})
-
-const saveProgressToTasks = async () => {
-  if (!window.electronAPI || !window.electronAPI.distributeAccumulation) {
-    errorMsg.value = 'Electron API for distribution not available.'
+const saveAsWeeklyReport = async () => {
+  if (!reportContent.value) {
+    errorMsg.value = 'Report content is empty.'
     return
   }
 
-  isDistributing.value = true
+  isSavingReport.value = true
   successMsg.value = ''
   errorMsg.value = ''
 
   try {
-    if (activeTab.value === 'accumulation') {
-      await saveAccumulation()
-    }
-
     const customDir = localStorage.getItem('tasksDir') || undefined
-    const res = await window.electronAPI.distributeAccumulation(customDir)
+    const res = await window.electronAPI.saveWeeklyReport(reportContent.value, customDir)
 
     if (res.success) {
-      successMsg.value = 'Accumulated logs successfully saved to individual task files!'
-      if (activeTab.value === 'accumulation') {
-        accumulationText.value = ''
-      }
+      successMsg.value = `Weekly report saved: ${res.path}`
     } else {
-      errorMsg.value = `Failed to distribute: ${res.error}`
+      errorMsg.value = `Failed to save: ${res.error}`
     }
   } catch (e) {
     errorMsg.value = e.message
   } finally {
-    isDistributing.value = false
+    isSavingReport.value = false
   }
 }
 
@@ -716,8 +697,8 @@ onMounted(async () => {
       // useProjects composable でプロジェクトをロード
       await loadProjects()
 
-      const allTasks = await window.electronAPI.getAllMarkdowns(customDir)
-      activeTasks.value = allTasks.filter(t => t.status === 'inProgress')
+      allTasks.value = await window.electronAPI.getAllMarkdowns(customDir)
+      activeTasks.value = allTasks.value.filter(t => t.status === 'inProgress')
     }
   } catch (err) {
     console.error('Failed to load tasks:', err)
