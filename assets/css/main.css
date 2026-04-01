@@ -274,4 +274,73 @@
             box-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
         }
     }
+
+    /* TACTICAL COMMAND CENTER STYLES */
+    .tech-bg {
+        background-color: #030b14;
+        background-image: 
+            radial-gradient(circle at 15% 50%, rgba(28, 86, 137, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 85% 30%, rgba(11, 36, 71, 0.3) 0%, transparent 50%),
+            linear-gradient(rgba(52, 126, 177, 0.08) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(52, 126, 177, 0.08) 1px, transparent 1px);
+        background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px;
+        background-position: 0 0, 0 0, -1px -1px, -1px -1px;
+    }
+
+    .nav-btn {
+        @apply block w-full px-4 py-2 text-lg tracking-widest text-[#6cb5d9] transition-all duration-200 relative z-10;
+        text-shadow: 0 0 2px rgba(108,181,217,0.3);
+    }
+    .nav-btn:hover {
+        @apply text-[#c3e6fd] pl-6;
+        text-shadow: 0 0 5px rgba(195,230,253,0.5);
+    }
+    .nav-btn-active {
+        @apply bg-[#c98a2c] text-[#030b14] font-bold pl-4 uppercase shadow-[0_0_15px_rgba(201,138,44,0.6)];
+        text-shadow: none;
+    }
+    .nav-btn-active:hover {
+        @apply text-[#030b14] bg-[#db9c3e];
+        text-shadow: none;
+    }
+
+    .frame-brackets {
+        position: relative;
+    }
+    .frame-brackets::before, .frame-brackets::after {
+        content: '';
+        position: absolute;
+        width: 20px; height: 20px;
+        pointer-events: none;
+        z-index: 20;
+    }
+    .frame-brackets::before {
+        top: 0; left: 0;
+        border-top: 2px solid #5296c7;
+        border-left: 2px solid #5296c7;
+        box-shadow: -2px -2px 5px rgba(82, 150, 199, 0.5);
+    }
+    .frame-brackets::after {
+        top: 0; right: 0;
+        border-top: 2px solid #5296c7;
+        border-right: 2px solid #5296c7;
+        box-shadow: 2px -2px 5px rgba(82, 150, 199, 0.5);
+    }
+
+    /* We can add pseudo elements to a child specifically for the bottom, but let's just use box-shadow on the main container for brevity if needed. 
+       Or define a separate class for bottom brackets */
+    .frame-brackets-inner-bottom {
+        pointer-events: none;
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+    }
+    .frame-brackets-inner-bottom::before {
+        content: ''; position: absolute; bottom: 0; left: 0; width: 20px; height: 20px;
+        border-bottom: 2px solid #5296c7; border-left: 2px solid #5296c7;
+    }
+    .frame-brackets-inner-bottom::after {
+        content: ''; position: absolute; bottom: 0; right: 0; width: 20px; height: 20px;
+        border-bottom: 2px solid #5296c7; border-right: 2px solid #5296c7;
+    }
 }

@@ -17,6 +17,16 @@ module.exports = {
                 'ace-highlight': 'rgb(var(--color-ace-highlight) / <alpha-value>)',
                 'ace-warning': 'rgb(var(--color-ace-warning) / <alpha-value>)',
                 'ace-title': 'rgb(var(--color-ace-title) / <alpha-value>)',
+                
+                // TCC Static Colors (from wireframes)
+                'tcc-bg': '#03080f',
+                'tcc-panel': '#071526',
+                'tcc-border': '#2a6a9a',
+                'tcc-text': '#8cb4cf',
+                'tcc-hi': '#bae6fd',
+                'tcc-warn': '#f59e0b',
+                'tcc-critical': '#ef4444',
+                'tcc-dim': '#1c3a52',
             },
             fontFamily: {
                 'mono': ['"Share Tech Mono"', '"Courier New"', 'Courier', 'monospace'],

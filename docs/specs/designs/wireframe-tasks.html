@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+<meta charset="UTF-8">
+<title>TCC Wireframe - TASKS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tcc: { bg: '#03080f', panel: '#071526', border: '#2a6a9a', text: '#8cb4cf', hi: '#bae6fd', warn: '#f59e0b', critical: '#ef4444', dim: '#1c3a52' }
+      },
+      fontFamily: { mono: ['"Share Tech Mono"', 'monospace'] }
+    }
+  }
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  body { background: #03080f; font-family: 'Share Tech Mono', monospace; }
+  .scanlines { position: fixed; inset: 0; pointer-events: none; z-index: 9999; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px); }
+  .glow-blue { text-shadow: 0 0 8px rgba(125,211,252,0.8); }
+  .glow-red  { text-shadow: 0 0 8px rgba(239,68,68,0.8); }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: rgba(42, 106, 154, 0.1); }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a6a9a; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+  .nav-link { @apply block w-full text-left px-4 py-2 text-tcc-text tracking-widest text-sm hover:text-tcc-hi transition-colors cursor-pointer; }
+  .nav-link.active { background: #c98a2c; color: #030b14; font-weight: bold; }
+  .tag { @apply text-[11px] px-2 py-0.5 border border-tcc-border text-tcc-text whitespace-nowrap; }
+  .badge-todo { border-color:#6b7280; color:#9ca3af; } .badge-inprog { border-color:#38bdf8; color:#7dd3fc; } .badge-done { border-color:#22c55e; color:#86efac; } .badge-icebox { border-color:#8b5cf6; color:#c4b5fd; } .badge-high { border-color:#ef4444; color:#fca5a5; } .badge-medium { border-color:#f59e0b; color:#fde68a; } .badge-low { border-color:#6b7280; color:#9ca3af; }
+  .btn { @apply px-3 py-1 text-xs border tracking-widest transition-all; }
+  .btn-primary { @apply border-tcc-hi text-tcc-hi hover:bg-tcc-hi hover:text-tcc-bg; }
+  .task-item { @apply flex items-center gap-3 px-3 py-2 border-b border-tcc-border/10 hover:bg-tcc-hi/10 cursor-pointer transition-colors; }
+  .task-item.active { @apply bg-tcc-hi/20 border-l-4 border-l-tcc-hi; }
+  .editor-textarea { @apply w-full h-full bg-black/40 text-tcc-hi p-6 font-mono text-sm leading-relaxed outline-none border border-tcc-border/20 resize-none; }
+  .toolbar-btn { @apply w-8 h-8 flex items-center justify-center border border-tcc-border/30 hover:bg-tcc-hi/20 text-tcc-text hover:text-tcc-hi cursor-pointer; }
+</style>
+</head>
+<body class="h-screen w-screen overflow-hidden text-tcc-text font-mono flex flex-col">
+<div class="scanlines"></div>
+
+<!-- HEADER -->
+<header class="flex-none flex justify-between items-center px-8 py-3 border-b border-tcc-border bg-tcc-panel/60">
+  <div></div>
+  <h1 class="text-2xl tracking-widest glow-blue text-tcc-hi flex items-center gap-3">
+    <span class="text-tcc-border">[</span>
+    <span>TACTICAL COMMAND CENTER</span>
+    <span class="text-tcc-warn" id="ver-label">v1.5.0</span>
+    <span class="text-tcc-border">]</span>
+  </h1>
+  <div class="text-right text-xs text-tcc-text/70 tracking-widest">
+    <p id="hdate"></p><p id="htime"></p>
+  </div>
+</header>
+
+<!-- BODY -->
+<div class="flex flex-row flex-grow overflow-hidden">
+  <!-- SIDEBAR -->
+  <nav class="w-44 flex-none flex flex-col border-r border-tcc-border/50 bg-tcc-panel/30 pt-6 space-y-1">
+    <a href="wireframe-home.html" class="nav-link">HOME</a>
+    <a href="wireframe-tasks.html" class="nav-link active">TASKS</a>
+    <a href="wireframe-reports.html" class="nav-link">REPORTS</a>
+    <a href="wireframe-settings.html" class="nav-link">SETTINGS</a>
+    <div class="flex-grow"></div>
+    <div class="px-3 pb-4">
+      <button class="btn btn-primary w-full text-center">+ NEW TASK</button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT: TASKS (TACTICAL EDITOR) -->
+  <main class="flex-grow flex flex-row overflow-hidden relative">
+
+    <!-- Tasks List Sidebar -->
+    <aside class="w-80 flex-none border-r border-tcc-border/30 bg-tcc-panel/20 flex flex-col h-full overflow-hidden">
+       <div class="p-4 border-b border-tcc-border/20 text-[10px] tracking-widest opacity-60 uppercase font-bold">Target List</div>
+       <div class="flex-grow overflow-y-auto custom-scrollbar">
+         <!-- Active Task -->
+         <div class="task-item active">
+            <div class="flex-grow">
+               <div class="text-[12px] text-white font-bold">UI REDESIGN: DASHBOARD</div>
+               <div class="flex gap-2 mt-1"><span class="badge-high tag text-[8px]">H</span><span class="badge-inprog tag text-[8px]">ENGAGED</span></div>
+            </div>
+         </div>
+         <div class="task-item"><div class="text-[12px] opacity-70">Report logic overhaul</div></div>
+       </div>
+    </aside>
+
+    <!-- Editor/Preview Area -->
+    <div class="flex-grow flex flex-col h-full overflow-hidden bg-tcc-bg/50 relative">
+       
+       <!-- Header -->
+       <div class="flex-none p-6 border-b border-tcc-border/30 bg-tcc-panel/40 flex justify-between items-center">
+          <div>
+             <h1 class="text-xl text-tcc-hi font-bold glow-blue tracking-wider">UI REDESIGN: DASHBOARD</h1>
+             <p class="text-[10px] text-tcc-text opacity-50 mt-1 uppercase tracking-widest">Target ID: #PJ-101 // Engaged Status: Active</p>
+          </div>
+          <div class="flex gap-3">
+             <button id="btn-edit" class="btn btn-primary px-6" onclick="toggleEdit()">>> EDIT CONTENT</button>
+             <button id="btn-save" class="hidden btn btn-warn px-8" onclick="toggleEdit()">[ SAVE CHANGES ]</button>
+             <button class="btn btn-ghost border border-tcc-border/40 hover:border-tcc-warn hover:text-tcc-warn" onclick="toggleProperties()">⚙ PROPERTIES</button>
+          </div>
+       </div>
+
+       <!-- Content Area -->
+       <div class="flex-grow flex overflow-hidden relative">
+          
+          <!-- EDITOR PANEL (Hidden by default, takes exactly 50% width when active) -->
+          <div id="editor-panel" class="hidden w-1/2 flex-none border-r border-tcc-border/30 bg-black/20 flex-col">
+             <!-- Toolbar restored -->
+             <div class="flex-none bg-tcc-panel/60 px-4 py-2 border-b border-tcc-border/20 flex gap-2">
+                <div class="toolbar-btn font-bold">B</div><div class="toolbar-btn italic">I</div><div class="toolbar-btn underline">U</div>
+                <div class="w-px h-8 bg-tcc-border/30 mx-1"></div>
+                <div class="toolbar-btn font-bold">H</div><div class="toolbar-btn font-bold">{ }</div><div class="toolbar-btn">🔗</div><div class="toolbar-btn">🖼</div>
+                <div class="ml-auto toolbar-btn opacity-50 cursor-not-allowed" title="Swap Sides">[⇄]</div>
+             </div>
+             <textarea class="editor-textarea custom-scrollbar border-0">## #01 概要 / OBJECTIVE
+Home画面における情報の視認性と操作性を管制塔レベルまで引き上げる。
+
+## #02 戦略的マイルストーン / TODO
+- [x] レイアウト設計の確定
+- [ ] ワイヤーフレームの詳細詰め
+- [ ] エディタとプレビューの等幅分割調整</textarea>
+          </div>
+
+          <!-- PREVIEW PANEL (Takes remaining space, making it 50% when editor is open) -->
+          <div id="preview-panel" class="flex-grow p-8 overflow-y-auto custom-scrollbar leading-relaxed">
+             <div class="max-w-3xl mx-auto space-y-8">
+                <section class="border-l-4 border-tcc-hi/40 pl-6 border-b border-tcc-border/10 pb-6">
+                   <h2 class="text-tcc-hi text-lg font-bold tracking-widest mb-4">#01 概要 / OBJECTIVE</h2>
+                   <p class="text-tcc-text text-sm">Home画面における情報の視認性と操作性を管制塔レベルまで引き上げる。</p>
+                </section>
+                <section class="border-l-4 border-tcc-hi/40 pl-6 border-b border-tcc-border/10 pb-6">
+                   <h2 class="text-tcc-hi text-lg font-bold tracking-widest mb-4">#02 戦略的マイルストーン / TODO</h2>
+                   <ul class="space-y-2 text-sm">
+                      <li class="flex items-center gap-2"><span class="text-green-400">[x]</span> <span>レイアウト設計の確定</span></li>
+                      <li class="flex items-center gap-2 text-tcc-hi border border-tcc-hi/20 px-2 py-1"><span class="animate-pulse">[ ]</span> <span>ワイヤーフレームの詳細詰め</span></li>
+                      <li class="flex items-center gap-2 opacity-50"><span class="text-tcc-text">[ ]</span> <span>エディタとプレビューの等幅分割調整</span></li>
+                   </ul>
+                </section>
+             </div>
+          </div>
+       </div>
+
+       <!-- Properties Sliding Panel -->
+       <div id="properties-panel" class="hidden absolute top-0 right-0 bottom-0 w-80 bg-tcc-panel border-l border-tcc-border shadow-2xl z-50 flex flex-col p-6 animate-slide-in">
+          <div class="flex justify-between items-center border-b border-tcc-border/30 pb-3 mb-6 font-bold text-tcc-hi">
+             <span class="text-xs">METADATA CONFIG</span>
+             <button class="text-tcc-text" onclick="toggleProperties()">[ X ]</button>
+          </div>
+          <div class="space-y-5 text-xs">
+             <div class="space-y-1"><label class="opacity-50 font-bold uppercase">Status</label>
+                <select class="w-full bg-black/40 border border-tcc-border/40 p-2 text-tcc-hi outline-none"><option selected>ENGAGED</option></select></div>
+             <div class="space-y-1"><label class="opacity-50 font-bold uppercase">Priority</label>
+                <select class="w-full bg-black/40 border border-tcc-border/40 p-2 text-tcc-hi outline-none"><option selected>HIGH</option></select></div>
+             <div class="space-y-1"><label class="opacity-50 font-bold uppercase">Project</label>
+                <select class="w-full bg-black/40 border border-tcc-border/40 p-2 text-tcc-hi outline-none"><option selected>SCREENAP DEV</option></select></div>   
+          </div>
+          <div class="mt-auto"><button class="btn btn-primary w-full py-2" onclick="toggleProperties()">[ APPLY ]</button></div>
+       </div>
+    </div>
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer class="flex-none flex items-center px-8 py-2.5 border-t border-tcc-border bg-tcc-panel/40 text-[10px] tracking-widest text-tcc-text">
+  <div class="flex items-center gap-3">
+    <span>SYSTEM: <span class="text-tcc-hi font-bold">ONLINE</span></span>
+    <span class="opacity-30">|</span>
+    <span>G-SYNC: <span class="text-green-400 font-bold">OK</span></span>
+    <span class="opacity-30">|</span>
+    <span>CALENDAR: <span class="text-tcc-warn font-bold">READY</span></span>
+  </div>
+  <div class="flex-grow text-center text-tcc-hi font-bold glow-blue text-[12px]">
+     TACTICAL DATA LINK // CONNECTION STABLE 1.5.0
+  </div>
+  <div class="flex items-center gap-3">
+    <span id="f-clock">12:34:56 UTC</span>
+    <span class="opacity-30">|</span>
+    <span class="opacity-60 font-mono text-[9px] bg-tcc-border/20 px-1 border border-tcc-border/40">NODE V20</span>
+  </div>
+</footer>
+
+<script>
+function tick() {
+  const now = new Date(); const pad = n => n.toString().padStart(2,'0')
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+  if(document.getElementById('hdate')) document.getElementById('hdate').textContent = `${months[now.getMonth()]} ${pad(now.getDate())} ${now.getFullYear()}`
+  if(document.getElementById('htime')) document.getElementById('htime').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`
+  if(document.getElementById('f-clock')) document.getElementById('f-clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} LMT`
+}
+setInterval(tick, 1000); tick()
+
+let isEditing = false;
+function toggleEdit() {
+  isEditing = !isEditing;
+  const panel = document.getElementById('editor-panel');
+  const preview = document.getElementById('preview-panel');
+  const btnEdit = document.getElementById('btn-edit');
+  const btnSave = document.getElementById('btn-save');
+
+  if (isEditing) {
+    // Show editor, making it flex display
+    panel.classList.remove('hidden');
+    panel.classList.add('flex');
+    btnEdit.classList.add('hidden');
+    btnSave.classList.remove('hidden');
+  } else {
+    // Hide editor
+    panel.classList.add('hidden');
+    panel.classList.remove('flex');
+    btnEdit.classList.remove('hidden');
+    btnSave.classList.add('hidden');
+  }
+}
+
+function toggleProperties() {
+  const panel = document.getElementById('properties-panel');
+  panel.classList.toggle('hidden');
+}
+</script>
+</body>
+</html>

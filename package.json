@@ -1,6 +1,6 @@
 {
-  "name": "progress-memo-app",
-  "version": "1.4.1",
+  "name": "tactical-command-center",
+  "version": "1.5.0",
   "main": "dist-electron/main.js",
   "scripts": {
     "build": "nuxt build",
@@ -31,8 +31,8 @@
     "marked": "^15.0.0"
   },
   "build": {
-    "appId": "com.progress.memo",
-    "productName": "Progress Memo",
+    "appId": "com.tactical.command.center",
+    "productName": "Tactical Command Center",
     "directories": {
       "output": "release"
     },
