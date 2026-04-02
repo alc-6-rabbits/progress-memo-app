@@ -25,7 +25,7 @@
     <!-- TOP ROW: 3 COLUMNS -->
     <div class="flex-none flex gap-4 h-[25%] min-h-[160px]">
       <!-- DAILY ITINERARY -->
-      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden bg-tcc-panel/20">
+      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden" style="background: rgba(0, 180, 255, 0.05);">
         <p class="text-[11px] text-tcc-hi tracking-widest border-b border-tcc-border/30 pb-0.5 mb-2 flex justify-between items-center font-bold">
           <span>ITINERARY</span><span class="text-[9px] opacity-50">G-CAL: OFFLINE</span>
         </p>
@@ -34,7 +34,7 @@
         </div>
       </div>
       <!-- DATALINK FEED -->
-      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden bg-tcc-panel/20 border-tcc-border/50">
+      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden" style="background: rgba(0, 180, 255, 0.05);">
         <p class="text-[11px] text-tcc-hi tracking-widest border-b border-tcc-border/30 pb-0.5 mb-2 font-bold flex justify-between">
            <span>DATALINK FEED</span>
            <span v-if="pending" class="text-[9px] animate-pulse">SCANNING...</span>
@@ -46,7 +46,7 @@
         </div>
       </div>
       <!-- OPERATIONAL INTEL -->
-      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden bg-tcc-panel/20">
+      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden" style="background: rgba(0, 180, 255, 0.05);">
         <p class="text-[11px] text-tcc-hi tracking-widest border-b border-tcc-border/30 pb-0.5 mb-2 font-bold">OPERATIONAL INTEL</p>
         <div class="flex-grow flex flex-col justify-center gap-3">
           <div class="flex justify-between text-[12px]"><span class="opacity-70">ACTIVE TARGETS</span><span class="text-tcc-hi font-bold">{{ tasksInProgress.length }}</span></div>
@@ -62,7 +62,7 @@
     <div class="flex-grow flex gap-4 min-h-0">
       
       <!-- LEFT: TASK BOARD -->
-      <div class="flex-[3] bracket-box p-4 flex flex-col overflow-hidden bg-tcc-panel/10">
+      <div class="flex-[3] bracket-box p-4 flex flex-col overflow-hidden" style="background: rgba(0, 180, 255, 0.07);">
         <div class="flex justify-between items-center border-b border-tcc-border/30 pb-1 mb-4">
            <p class="text-[11px] text-tcc-hi tracking-widest uppercase font-bold">Task Strategic Board</p>
            <NuxtLink to="/tasks" class="text-[10px] text-tcc-hi hover:text-white underline transition-colors cursor-pointerglow-blue">FULL BOARD ▶</NuxtLink>
@@ -105,7 +105,7 @@
       </div>
 
       <!-- RIGHT: TACTICAL TIMELINE (Restored Gantt) -->
-      <div class="flex-[2] bracket-box p-4 flex flex-col overflow-hidden bg-tcc-panel/10">
+      <div class="flex-[2] bracket-box p-4 flex flex-col overflow-hidden" style="background: rgba(0, 180, 255, 0.05);">
         <div class="flex justify-between items-center border-b border-tcc-border/30 pb-1 mb-2">
           <p class="text-[11px] text-tcc-hi tracking-widest uppercase font-bold">Tactical Timeline</p>
           <div class="flex gap-4 text-[10px] text-tcc-hi/70 font-bold items-center">
@@ -333,14 +333,16 @@ const formatTimeOnly = (isoString) => {
   @apply opacity-100 bg-tcc-hi/20 text-tcc-hi border-b-2 border-b-tcc-hi font-bold;
 }
 .task-card {
-  background-color: rgba(7, 21, 38, 0.4);
-  border: 1px solid rgba(42, 106, 154, 0.3);
+  background-color: rgba(10, 26, 53, 0.45);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(0, 140, 210, 0.25);
   padding: 0.75rem;
   transition: all 0.2s;
 }
 .task-card:hover {
-  border-color: rgba(186, 230, 253, 0.5);
-  background-color: rgba(186, 230, 253, 0.05);
+  border-color: rgba(0, 212, 255, 0.6);
+  background-color: rgba(0, 212, 255, 0.06);
+  box-shadow: 0 0 8px rgba(0,212,255,0.2);
 }
 .tag {
   @apply text-[9px] px-1.5 py-0.5 border font-bold uppercase;

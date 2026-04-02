@@ -2,7 +2,7 @@
   <div class="h-full w-full flex flex-row overflow-hidden relative font-mono">
     
     <!-- Reports List Sidebar -->
-    <aside class="w-80 flex-none border-r border-tcc-border/30 bg-tcc-panel/20 flex flex-col h-full overflow-hidden">
+    <aside class="w-80 flex-none border-r border-tcc-border/20 bg-tcc-panel/15 backdrop-blur-sm flex flex-col h-full overflow-hidden">
        <div class="p-4 border-b border-tcc-border/20 text-[10px] tracking-widest opacity-60 uppercase font-bold flex justify-between items-center">
          <span>Generated Reports</span>
          <button @click="refresh" class="hover:text-tcc-hi transition-colors" title="Refresh">↻</button>
@@ -43,7 +43,7 @@
     </aside>
 
     <!-- TRADITIONAL REPORT EDITOR -->
-    <div class="flex-grow flex flex-col h-full overflow-hidden bg-tcc-bg/50 relative">
+    <div class="flex-grow flex flex-col h-full overflow-hidden bg-tcc-bg/40 relative">
        
        <div v-if="!activeReport && !isCreating" class="flex-grow flex items-center justify-center text-tcc-text opacity-30 text-xs tracking-widest flex-col gap-4">
          <span>>> SELECT OR GENERATE REPORT</span>
@@ -55,7 +55,7 @@
 
        <template v-else>
          <!-- Header -->
-         <div class="flex-none p-6 border-b border-tcc-border/30 bg-tcc-panel/40 flex justify-between items-center">
+         <div class="flex-none p-6 border-b border-tcc-border/20 bg-tcc-panel/40 backdrop-blur-md flex justify-between items-center">
             <div class="flex-grow min-w-0 pr-4">
                <h1 class="text-xl text-tcc-hi font-bold glow-blue tracking-wider truncate">
                  <template v-if="isCreating">GENERATING NEW REPORT...</template>
@@ -106,8 +106,8 @@
          <div class="flex-grow flex overflow-hidden relative">
             
             <!-- EDITOR PANEL -->
-            <div v-show="isEditing && !isCreating" class="w-1/2 flex-none border-r border-tcc-border/30 bg-black/20 flex flex-col" style="transition: all 0.3s; transform-origin: left">
-               <div class="flex-none bg-tcc-panel/60 px-4 py-2 border-b border-tcc-border/20 flex gap-1.5 overflow-x-auto items-center">
+            <div v-show="isEditing && !isCreating" class="w-1/2 flex-none border-r border-tcc-border/20 bg-black/30 flex flex-col" style="transition: all 0.3s; transform-origin: left">
+               <div class="flex-none bg-tcc-panel/40 backdrop-blur-sm px-4 py-2 border-b border-tcc-border/20 flex gap-1.5 overflow-x-auto items-center">
                   <button @click="insertSyntax('**', '**')" class="toolbar-btn font-bold">B</button>
                   <button @click="insertSyntax('_', '_')" class="toolbar-btn italic">I</button>
                   <button @click="insertSyntax('~~', '~~')" class="toolbar-btn line-through">S</button>
@@ -132,7 +132,7 @@
             </div>
 
             <!-- PREVIEW PANEL -->
-            <div class="flex-grow p-8 overflow-y-auto custom-scrollbar bg-black/10 relative" :class="(!isEditing || isCreating) ? 'w-full' : 'w-1/2'">
+            <div class="flex-grow p-8 overflow-y-auto custom-scrollbar bg-black/5 relative" :class="(!isEditing || isCreating) ? 'w-full' : 'w-1/2'">
                <div class="max-w-3xl mx-auto space-y-8 pb-16">
                   <!-- Main rendered markdown -->
                   <div class="border border-tcc-border/20 p-8 bg-black/40 shadow-xl" v-html="previewHtml"></div>

@@ -21,7 +21,7 @@
           
           <!-- Left Column: Core System -->
           <div class="space-y-6">
-            <section class="border border-tcc-border/20 bg-tcc-panel/10 p-6 space-y-4">
+            <section class="border border-tcc-border/20 bg-tcc-panel/15 backdrop-blur-sm p-6 space-y-4">
               <h2 class="text-sm font-bold text-tcc-hi border-b border-tcc-border/30 pb-2 mb-4">■ 01: OPERATIONAL ENVIRONMENT</h2>
               
               <div>
@@ -71,10 +71,10 @@
 
           <!-- Right Column: API & Sync -->
           <div class="space-y-6 flex flex-col">
-            <section class="border border-tcc-border/20 bg-tcc-panel/10 p-6 space-y-4 flex-1">
+            <section class="border border-tcc-border/20 bg-tcc-panel/15 backdrop-blur-sm p-6 space-y-4 flex-1">
               <h2 class="text-sm font-bold text-tcc-hi border-b border-tcc-border/30 pb-2 mb-4">■ 02: EXTERNAL DATALINK</h2>
 
-              <div class="mb-5 border border-tcc-border/20 p-3 bg-black/20">
+              <div class="mb-5 border border-tcc-border/20 p-3 bg-black/30 backdrop-blur-sm">
                 <div class="flex justify-between items-center mb-2">
                   <label class="block text-[10px] uppercase font-bold text-white opacity-90 mb-0 tracking-widest">GitHub API Token (PAT)</label>
                   <span v-if="isValidatingUser" class="text-[9px] text-tcc-warn font-bold tracking-widest px-2 py-0 border border-tcc-warn bg-tcc-warn/10 animate-pulse">VALIDATING...</span>
@@ -112,7 +112,7 @@
                 </div>
               </div>
 
-              <div class="border border-tcc-border/20 p-3 bg-black/20">
+              <div class="border border-tcc-border/20 p-3 bg-black/30 backdrop-blur-sm">
                 <div class="flex justify-between items-center mb-2">
                   <label class="block text-[10px] uppercase font-bold text-white opacity-90 mb-0 tracking-widest">Google Chat Webhook</label>
                   <span :class="webhookUrl ? 'text-green-400 border-green-500/50 bg-green-500/10' : 'text-gray-500 border-gray-500 bg-gray-500/10'" class="text-[9px] font-bold tracking-widest px-2 py-0 border">

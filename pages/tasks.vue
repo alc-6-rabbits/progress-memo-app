@@ -2,7 +2,7 @@
   <div class="h-full w-full flex flex-row overflow-hidden relative">
 
     <!-- Tasks List Sidebar -->
-    <aside class="w-80 flex-none border-r border-tcc-border/30 bg-tcc-panel/20 flex flex-col h-full overflow-hidden">
+    <aside class="w-80 flex-none border-r border-tcc-border/20 bg-tcc-panel/15 backdrop-blur-sm flex flex-col h-full overflow-hidden">
        <div class="p-4 border-b border-tcc-border/20 text-[10px] tracking-widest opacity-60 uppercase font-bold flex justify-between items-center">
          <span>Target List</span>
          <button @click="refresh" class="hover:text-tcc-hi transition-colors">↻</button>
@@ -31,7 +31,7 @@
     </aside>
 
     <!-- Editor/Preview Area -->
-    <div class="flex-grow flex flex-col h-full overflow-hidden bg-tcc-bg/50 relative">
+    <div class="flex-grow flex flex-col h-full overflow-hidden bg-tcc-bg/40 relative">
        
        <div v-if="!activeTask" class="flex-grow flex items-center justify-center text-tcc-text opacity-30 text-xs tracking-widest">
          >> SELECT TARGET FROM LEFT PANEL 
@@ -39,7 +39,7 @@
        
        <template v-else>
          <!-- Header -->
-         <div class="flex-none p-6 border-b border-tcc-border/30 bg-tcc-panel/40 flex justify-between items-center">
+         <div class="flex-none p-6 border-b border-tcc-border/20 bg-tcc-panel/40 backdrop-blur-md flex justify-between items-center">
             <div class="min-w-0 flex-grow pr-4">
                <h1 class="text-xl text-tcc-hi font-bold glow-blue tracking-wider truncate">{{ activeTask.title }}</h1>
                <p class="text-[10px] text-tcc-text opacity-50 mt-1 uppercase tracking-widest truncate">Target ID: {{ activeTask.issue ? '#' + activeTask.issue : activeTask.id }} // Status: {{ getStatusName(activeTask.status) }}</p>
@@ -57,8 +57,8 @@
          <div class="flex-grow flex overflow-hidden relative">
             
             <!-- EDITOR PANEL -->
-            <div v-show="isEditing" class="w-1/2 flex-none border-r border-tcc-border/30 bg-black/20 flex flex-col relative transition-all duration-300">
-               <div class="flex-none bg-tcc-panel/60 px-4 py-2 border-b border-tcc-border/20 flex items-center gap-1.5 overflow-x-auto">
+            <div v-show="isEditing" class="w-1/2 flex-none border-r border-tcc-border/20 bg-black/30 flex flex-col relative transition-all duration-300">
+               <div class="flex-none bg-tcc-panel/40 backdrop-blur-sm px-4 py-2 border-b border-tcc-border/20 flex items-center gap-1.5 overflow-x-auto">
                   <button @click="insertSyntax('**', '**')" class="toolbar-btn font-bold" title="Bold">B</button>
                   <button @click="insertSyntax('_', '_')" class="toolbar-btn italic" title="Italic">I</button>
                   <button @click="insertSyntax('~~', '~~')" class="toolbar-btn line-through" title="Strikethrough">S</button>
@@ -131,7 +131,7 @@
 
          <!-- Properties Sliding Panel -->
          <Transition name="slide">
-           <div v-if="showProperties" class="absolute top-0 right-0 bottom-0 w-80 bg-tcc-panel border-l border-tcc-border shadow-2xl z-50 flex flex-col p-6 overflow-y-auto custom-scrollbar">
+           <div v-if="showProperties" class="absolute top-0 right-0 bottom-0 w-80 bg-tcc-panel/80 backdrop-blur-xl border-l border-tcc-border/30 shadow-2xl z-50 flex flex-col p-6 overflow-y-auto custom-scrollbar">
               <div class="flex justify-between items-center border-b border-tcc-border/30 pb-3 mb-6 font-bold text-tcc-hi">
                  <span class="text-xs">METADATA CONFIG</span>
                  <button class="text-tcc-text hover:text-white transition-colors" @click="toggleProperties">[ X ]</button>
