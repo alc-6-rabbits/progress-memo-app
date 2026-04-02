@@ -114,6 +114,49 @@
         }
     }
 
+    .laser-scan-wrapper {
+        position: relative;
+        display: inline-flex;
+        overflow: hidden;
+    }
+
+    .laser-scan-wrapper::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #00d4ff;
+        box-shadow: 0 0 8px 2px rgba(0, 212, 255, 0.8);
+        animation: laser-scan-line 8s linear infinite; /* 全体周期8秒 */
+        pointer-events: none;
+        z-index: 10;
+        opacity: 0;
+    }
+
+    @keyframes laser-scan-line {
+        /* 0~1秒(0~12.5%) 待機 */
+        0%, 12% { top: -10%; opacity: 0; }
+        /* 1秒後(12.5%) スキャン開始。2.5秒後(31.25%)にスキャン完了 */
+        12.5% { top: -10%; opacity: 0.8; }
+        31.25% { top: 110%; opacity: 0.8; }
+        /* スキャン完了後消える */
+        32%, 100% { top: 120%; opacity: 0; }
+    }
+
+    .logo-3d-spin {
+        animation: spin-and-hover 8s ease-in-out infinite;
+        transform-style: preserve-3d;
+    }
+
+    @keyframes spin-and-hover {
+        /* 0~3.5秒(0~44%) まで表面のまま完全に待機 */
+        0%, 44% { transform: perspective(800px) rotateY(0deg); }
+        /* 3.5秒(44%)から回転開始し、7.5秒(94%)で1回転完了 */
+        /* 中間の角度指定(90,180度など)を無くすことで、ease-in-out が1回転全体に1度だけかかり、途中で減速しないようにします */
+        94%, 100% { transform: perspective(800px) rotateY(360deg); }
+    }
+
     .scanlines-overlay {
         position: fixed;
         top: 0;
