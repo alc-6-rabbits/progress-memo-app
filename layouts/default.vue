@@ -3,16 +3,21 @@
     <div class="scanlines"></div>
 
     <!-- HEADER -->
-    <header class="flex-none flex justify-between items-center px-8 py-3 border-b border-tcc-border/20 z-10" style="background: rgba(0, 180, 255, 0.06);">
-      <div></div>
-      <h1 class="text-2xl tracking-widest text-tcc-hi drop-shadow-[0_0_8px_rgba(125,211,252,0.8)] flex items-center gap-3">
+    <header class="flex-none grid grid-cols-[1fr_3fr_1fr] items-center px-8 py-3 border-b border-tcc-border/20 z-10" style="background: rgba(0, 180, 255, 0.06);">
+      <div class="flex items-center">
+        <div class="laser-scan-wrapper">
+          <img src="~/assets/tcc-logo.png" alt="TCC LOGO" class="h-12 w-auto opacity-90 drop-shadow-[0_0_8px_rgba(0,212,255,0.5)] logo-3d-spin">
+        </div>
+      </div>
+      <h1 class="text-2xl tracking-widest text-tcc-hi drop-shadow-[0_0_8px_rgba(125,211,252,0.8)] flex items-center gap-3 justify-self-center transition-all duration-300">
         <span class="text-tcc-border">[</span>
-        <span>TACTICAL COMMAND CENTER</span>
+        <span>{{ pageTitle }}</span>
         <span class="text-tcc-warn">{{ appVersion }}</span>
         <span class="text-tcc-border">]</span>
       </h1>
-      <div class="text-right text-xs text-tcc-text/70 tracking-widest flex gap-4">
-        <p>{{ formattedDate }}</p><p>{{ formattedTime }}</p>
+      <div class="text-right text-xs text-tcc-text/80 tracking-[0.2em] flex flex-col items-end gap-1 justify-self-end leading-tight">
+        <p>{{ formattedDate }}</p>
+        <p>{{ formattedTime }}</p>
       </div>
     </header>
 
@@ -49,7 +54,7 @@
         <span>DB: <span class="text-tcc-hi">LOCAL-FS</span></span>
       </div>
       <div class="text-center text-tcc-hi font-bold text-[12px] tracking-[0.2em] drop-shadow-[0_0_5px_rgba(125,211,252,0.5)] flex-grow">
-         TACTICAL DATA LINK // CONNECTION STABLE 1.5.0
+         TACTICAL DATA LINK // CONNECTION STABLE {{ appVersion.replace('v', '') }}
       </div>
       <div class="flex items-center gap-3">
         <span>LMT</span>
@@ -66,9 +71,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const appVersion = ref('v1.5.0')
 const currentTime = ref(new Date())
 let timer
@@ -91,6 +97,15 @@ const formattedDate = computed(() => {
 
 const formattedTime = computed(() => {
   return currentTime.value.toLocaleTimeString('en-US', { hour12: false })
+})
+
+const pageTitle = computed(() => {
+  const path = route.path
+  if (path === '/') return 'SYSTEM DASHBOARD'
+  if (path.startsWith('/tasks')) return 'TASK OPERATIONS'
+  if (path.startsWith('/report')) return 'INTELLIGENCE REPORTS'
+  if (path.startsWith('/settings')) return 'SYSTEM CONFIGURATION'
+  return 'TACTICAL INTERFACE'
 })
 
 const createNewTask = () => {
