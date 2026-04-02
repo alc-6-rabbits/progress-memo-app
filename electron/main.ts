@@ -225,24 +225,58 @@ ipcMain.handle('save-projects', async (event, data: any, customDirPath?: string)
     }
 })
 
-ipcMain.handle('save-weekly-report', async (event, content: string, customDirPath?: string) => {
+ipcMain.handle('save-report', async (event, filename: string, content: string, customDirPath?: string) => {
     try {
         const rootDir = customDirPath ? path.dirname(customDirPath) : path.join(app.getAppPath(), 'content')
-        const targetDir = path.join(rootDir, 'weekly-reports')
+        const targetDir = path.join(rootDir, 'reports')
         
         if (!fs.existsSync(targetDir)) {
             fs.mkdirSync(targetDir, { recursive: true })
         }
 
-        const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
-        const filename = `weekly-report-${today}.md`
         const filePath = path.join(targetDir, filename)
 
         await fs.promises.writeFile(filePath, content, 'utf-8')
         return { success: true, path: filePath }
     } catch (error: any) {
-        console.error('Failed to save weekly report:', error)
+        console.error('Failed to save report:', error)
         return { success: false, error: error.message }
+    }
+})
+
+ipcMain.handle('get-all-reports', async (event, customDirPath?: string) => {
+    try {
+        const rootDir = customDirPath ? path.dirname(customDirPath) : path.join(app.getAppPath(), 'content')
+        const targetDir = path.join(rootDir, 'reports')
+        
+        if (!fs.existsSync(targetDir)) {
+           return []
+        }
+
+        const fg = require('fast-glob')
+        const files = await fg('**/*.md', { cwd: targetDir })
+        
+        const matter = require('gray-matter')
+        const reports = []
+        for (const file of files) {
+            const filePath = path.join(targetDir, file)
+            const content = await fs.promises.readFile(filePath, 'utf-8')
+            const stats = await fs.promises.stat(filePath)
+            const parsed = matter(content)
+            
+            reports.push({
+                _file: file,
+                ...parsed.data,
+                content: parsed.content,
+                updated_at: stats.mtime.toISOString(),
+                created_at: stats.ctime.toISOString()
+            })
+        }
+        
+        return reports.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    } catch (error: any) {
+        console.error('Failed to get reports:', error)
+        return []
     }
 })
 
@@ -297,6 +331,19 @@ ipcMain.handle('get-all-markdowns', async (event, customDirPath?: string) => {
                 const parsed = matter(content)
 
                 let fileChanged = false
+
+                // Migration: legacy status standardization
+                if (parsed.data.status === 'inProgress') {
+                    parsed.data.status = 'in-progress'
+                    fileChanged = true
+                } else if (parsed.data.status === 'archived') {
+                    parsed.data.status = 'done'
+                    fileChanged = true
+                }
+
+                // Ensure new schema fields exist
+                if (parsed.data.priority === undefined) { parsed.data.priority = "Medium"; fileChanged = true; }
+                if (parsed.data.tags === undefined) { parsed.data.tags = []; fileChanged = true; }
 
                 // Migration: legacy 'project' -> 'project_id' and 'project_name'
                 if (!parsed.data.project_id) {

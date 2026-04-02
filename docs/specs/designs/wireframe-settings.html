@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+<meta charset="UTF-8">
+<title>TCC Wireframe - SETTINGS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tcc: { bg: '#03080f', panel: '#071526', border: '#2a6a9a', text: '#8cb4cf', hi: '#bae6fd', warn: '#f59e0b', critical: '#ef4444', dim: '#1c3a52' }
+      },
+      fontFamily: { mono: ['"Share Tech Mono"', 'monospace'] }
+    }
+  }
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  body { background: #03080f; font-family: 'Share Tech Mono', monospace; }
+  .scanlines { position: fixed; inset: 0; pointer-events: none; z-index: 9999; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px); }
+  .glow-blue { text-shadow: 0 0 8px rgba(125,211,252,0.8); }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: rgba(42, 106, 154, 0.1); }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a6a9a; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+  .nav-link { @apply block w-full text-left px-4 py-2 text-tcc-text tracking-widest text-sm hover:text-tcc-hi transition-colors cursor-pointer; }
+  .nav-link.active { background: #c98a2c; color: #030b14; font-weight: bold; }
+  .btn { @apply px-3 py-1 text-xs border tracking-widest transition-all; }
+  .btn-primary { @apply border-tcc-hi text-tcc-hi hover:bg-tcc-hi hover:text-tcc-bg; }
+  .setting-group { @apply border border-tcc-border/20 bg-tcc-panel/10 p-6 space-y-4; }
+  .input-field { @apply bg-black/50 border border-tcc-border/40 text-tcc-hi px-3 py-1.5 w-full outline-none focus:border-tcc-hi; }
+  .label-text { @apply block text-[10px] uppercase font-bold text-tcc-text opacity-70 mb-1 tracking-widest; }
+</style>
+</head>
+<body class="h-screen w-screen overflow-hidden text-tcc-text font-mono flex flex-col">
+<div class="scanlines"></div>
+
+<!-- HEADER -->
+<header class="flex-none flex justify-between items-center px-8 py-3 border-b border-tcc-border bg-tcc-panel/60">
+  <div></div>
+  <h1 class="text-2xl tracking-widest glow-blue text-tcc-hi flex items-center gap-3">
+    <span class="text-tcc-border">[</span>
+    <span>TACTICAL COMMAND CENTER</span>
+    <span class="text-tcc-warn">v1.5.0</span>
+    <span class="text-tcc-border">]</span>
+  </h1>
+  <div class="text-right text-xs text-tcc-text/70 tracking-widest">
+    <p id="hdate"></p><p id="htime"></p>
+  </div>
+</header>
+
+<!-- BODY -->
+<div class="flex flex-row flex-grow overflow-hidden relative">
+  <!-- SIDEBAR -->
+  <nav class="w-44 flex-none flex flex-col border-r border-tcc-border/50 bg-tcc-panel/30 pt-6 space-y-1">
+    <a href="wireframe-home.html" class="nav-link">HOME</a>
+    <a href="wireframe-tasks.html" class="nav-link">TASKS</a>
+    <a href="wireframe-reports.html" class="nav-link">REPORTS</a>
+    <a href="wireframe-settings.html" class="nav-link active">SETTINGS</a>
+    <div class="flex-grow"></div>
+  </nav>
+
+  <!-- MAIN CONTENT: SETTINGS -->
+  <main class="flex-grow flex flex-col p-8 overflow-y-auto custom-scrollbar relative">
+
+    <div class="max-w-4xl w-full mx-auto">
+      <div class="flex justify-between items-center border-b border-tcc-border/40 pb-4 mb-8">
+        <div>
+          <h1 class="text-2xl text-tcc-hi font-bold glow-blue tracking-wider">SYSTEM SETTINGS</h1>
+          <p class="text-[10px] text-tcc-text opacity-50 mt-1 uppercase tracking-widest">TCC Global Configuration Parameters</p>
+        </div>
+        <button class="btn btn-primary px-8 py-2 font-bold animate-pulse">[ APPLY PARAMETERS ]</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-8">
+        
+        <!-- Left Column: Core System -->
+        <div class="space-y-6">
+          <section class="setting-group">
+            <h2 class="text-sm font-bold text-tcc-hi border-b border-tcc-border/30 pb-2 mb-4">■ 01: OPERATIONAL ENVIRONMENT</h2>
+            
+            <div>
+              <label class="label-text">Database Root Path (Workspaces)</label>
+              <div class="flex gap-2">
+                <input type="text" value="D:\Programs\Antigravity\progress-report\database" class="input-field flex-grow opacity-80" readonly>
+                <button class="btn border-tcc-border">BROWSE</button>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="flex-1">
+                <label class="label-text">Terminal Font Size</label>
+                <div class="flex items-center gap-3">
+                  <input type="range" min="10" max="24" value="14" class="w-full accent-tcc-hi">
+                  <span class="text-tcc-hi">14px</span>
+                </div>
+              </div>
+              <div class="flex-1">
+                <label class="label-text">UI Theme Overlay</label>
+                <select class="input-field">
+                  <option selected>Deep Sea Blue (TCC Default)</option>
+                  <option>Crimson Alert</option>
+                  <option>Tactical Green</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="pt-4 mt-2 border-t border-tcc-border/20 flex items-center justify-between">
+              <label class="text-[11px] uppercase tracking-widest opacity-80">Enable Sound Effects</label>
+              <div class="w-10 h-5 bg-tcc-hi/20 rounded-full relative cursor-pointer border border-tcc-hi/50">
+                <div class="w-4 h-4 bg-tcc-hi rounded-full absolute right-0.5 top-px"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Column: API & Sync -->
+        <div class="space-y-6 flex flex-col">
+          <section class="setting-group flex-1">
+            <h2 class="text-sm font-bold text-tcc-hi border-b border-tcc-border/30 pb-2 mb-4">■ 02: EXTERNAL DATALINK</h2>
+
+            <div class="mb-5 border border-tcc-border/20 p-3 bg-black/20">
+              <div class="flex justify-between items-center mb-2">
+                <label class="label-text !mb-0 text-white">GitHub API Token (PAT)</label>
+                <span class="text-[9px] text-green-400 font-bold tracking-widest px-2 py-0 border border-green-500/50 bg-green-500/10">CONNECTED</span>
+              </div>
+              <input type="password" value="****************************************" class="input-field mb-2 text-xs">
+              <div class="flex justify-between items-center mb-4 border-b border-tcc-border/20 pb-4">
+                <span class="text-[10px] text-tcc-text opacity-50 italic">Required for fetching API Activity & Issues</span>
+                <button class="btn border-tcc-border/50 text-[10px] py-0 hover:text-white">VERIFY LINK</button>
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <label class="label-text !mb-0 text-white">Default GitHub Repository</label>
+                <input type="text" value="f-ae8/progress-report" class="input-field text-xs opacity-90">
+                <span class="text-[9px] text-tcc-text opacity-50 italic">Target repository for issues when not specified</span>
+              </div>
+            </div>
+
+            <div class="mb-5 border border-tcc-border/20 p-3 bg-black/20">
+              <div class="flex justify-between items-center mb-2">
+                <label class="label-text !mb-0 text-white">Google Calendar Sync</label>
+                <span class="text-[9px] text-tcc-warn font-bold tracking-widest px-2 py-0 border border-tcc-warn/50 bg-tcc-warn/10">AUTH REQ.</span>
+              </div>
+              <div class="text-[10px] text-tcc-text opacity-70 mb-3 leading-relaxed">
+                Google Calendar integration allows TCC to directly pull today's events into the Daily Itinerary panel.
+              </div>
+              <button class="btn border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black w-full text-[11px] font-bold py-1">➔ INITIATE OAUTH FLOW</button>
+            </div>
+
+            <div class="border border-tcc-border/20 p-3 bg-black/20">
+              <div class="flex justify-between items-center mb-2">
+                <label class="label-text !mb-0 text-white">Google Chat Webhook</label>
+                <span class="text-[9px] text-gray-500 font-bold tracking-widest px-2 py-0 border border-gray-500 bg-gray-500/10">OFFLINE</span>
+              </div>
+              <input type="text" placeholder="https://chat.googleapis.com/v1/spaces/..." class="input-field mb-2 text-xs opacity-50">
+              <div class="text-[10px] text-tcc-text opacity-50 italic">Output target for Daily Reports</div>
+            </div>
+            
+          </section>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer class="flex-none flex items-center px-8 py-2.5 border-t border-tcc-border bg-tcc-panel/40 text-[10px] tracking-widest text-tcc-text">
+  <div class="flex items-center gap-3">
+    <span>SYSTEM: <span class="text-tcc-hi font-bold">ONLINE</span></span>
+  </div>
+  <div class="flex-grow text-center text-tcc-hi font-bold glow-blue text-[12px]">
+     CONFIGURATION PANEL
+  </div>
+  <div class="flex items-center gap-3">
+    <span id="f-clock">12:34:56 UTC</span>
+  </div>
+</footer>
+
+<script>
+function tick() {
+  const now = new Date(); const pad = n => n.toString().padStart(2,'0')
+  if(document.getElementById('f-clock')) document.getElementById('f-clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} LMT`
+}
+setInterval(tick, 1000); tick()
+</script>
+</body>
+</html>

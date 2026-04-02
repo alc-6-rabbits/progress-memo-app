@@ -1,648 +1,350 @@
 <template>
-  <div class="h-full flex gap-6 overflow-hidden">
-    <!-- LEFT PANEL: Projects and Tasks List -->
-    <div class="w-1/3 flex h-full glass-panel overflow-hidden border-l-4 border-l-ace-highlight relative">
-      
-      <!-- Vertical Sidebar (Tabs) -->
-      <div 
-        class="flex flex-col h-full bg-[#050c14] border-r border-ace-border/50 z-20 transition-all duration-300 ease-in-out shrink-0 absolute left-0 top-0 bottom-0"
-        :class="sidebarExpanded ? 'w-48 shadow-[5px_0_15px_rgba(0,0,0,0.8)]' : 'w-12'"
-        @mouseenter="sidebarExpanded = true"
-        @mouseleave="sidebarExpanded = false"
-      >
-        <!-- Sidebar Header (Toggle button area, though handled by hover now, keep for visual balance or manual click if preferred) -->
-        <div class="h-14 flex items-center justify-center border-b border-white/10 shrink-0 cursor-pointer text-ace-highlight hover:bg-white/5" @click="sidebarExpanded = !sidebarExpanded">
-           <svg v-if="sidebarExpanded" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
-           <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-        </div>
+  <div class="h-full w-full flex flex-col p-6 gap-4 overflow-hidden relative font-mono text-tcc-text">
+    
+    <!-- PROJECT SELECTOR -->
+    <div class="flex-none flex items-center border border-tcc-border/30 bg-tcc-panel/40 overflow-hidden overflow-x-auto custom-scrollbar">
+      <div class="px-3 py-1 bg-tcc-border/20 text-[10px] font-bold tracking-widest text-tcc-hi border-r border-tcc-border/30 uppercase flex-none">Project Filter</div>
+      <div class="pj-tab flex-none" :class="{ 'active': selectedProject === 'ALL UNITS' }" @click="selectedProject = 'ALL UNITS'">
+        ALL UNITS
+      </div>
+      <div v-for="proj in uniqueProjects" :key="proj" class="pj-tab flex-none" :class="{ 'active': selectedProject === proj }" @click="selectedProject = proj">
+        {{ proj }}
+      </div>
+      <div class="ml-auto px-4 text-[10px] text-tcc-hi font-bold italic animate-pulse flex-none">>> LIVE OPERATION DATA</div>
+    </div>
 
-        <!-- Tab List -->
-        <div class="flex-grow flex flex-col pt-4 space-y-2 px-2 overflow-y-auto overflow-x-hidden">
-          <button 
-            v-for="tab in tabs" 
-            :key="tab.value"
-            @click="selectTab(tab.value)"
-            class="flex items-center space-x-3 w-full py-3 px-2 rounded-sm transition-all duration-200"
-            :class="currentTab === tab.value ? 'bg-ace-highlight text-ace-bg font-bold' : 'text-ace-text hover:bg-white/10 hover:text-white'"
-            :title="tab.label"
-          >
-            <!-- Icons -->
-            <div class="shrink-0 flex items-center justify-center w-5">
-              <!-- In Progress (Clock) -->
-              <svg v-if="tab.value === 'inProgress'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <!-- Icebox (Box) -->
-              <svg v-else-if="tab.value === 'icebox'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-              <!-- Archived (Album/Archive) -->
-              <svg v-else-if="tab.value === 'archived'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-            </div>
-            
-            <span class="text-xs tracking-widest whitespace-nowrap opacity-100 transition-opacity duration-200" :class="{ 'opacity-0 w-0 hidden': !sidebarExpanded }">
-              {{ tab.label.toUpperCase() }}
-            </span>
-          </button>
+    <!-- ALERT BANNER -->
+    <div v-if="overdueTasks.length > 0" class="flex-none flex items-center gap-4 border border-tcc-critical bg-tcc-critical/10 px-4 py-2 relative overflow-hidden animate-pulse">
+        <div class="absolute left-0 top-0 bottom-0 w-1 bg-tcc-critical"></div>
+        <span class="bg-tcc-critical text-white px-3 py-0.5 text-[11px] font-bold tracking-widest">⚠ SYSTEM ALERT</span>
+        <span class="text-tcc-critical text-[11px] font-bold tracking-[0.2em] uppercase glow-red flex-grow">
+           Critical Deadlines detected // {{ overdueTasks.length }} targets overdue or at risk
+        </span>
+    </div>
 
-          <NuxtLink 
-            to="/import-github" 
-            class="flex items-center space-x-3 w-full py-3 px-2 rounded-sm transition-all duration-200 text-ace-highlight hover:bg-ace-highlight hover:text-ace-bg border border-transparent"
-            :class="{ 'border-ace-highlight/30': !sidebarExpanded }"
-            title="Import from GitHub"
-          >
-            <!-- GitHub/Cat Icon -->
-            <div class="shrink-0 flex items-center justify-center w-5">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"/></svg>
-            </div>
-            <span class="text-xxs font-bold tracking-widest whitespace-nowrap opacity-100 transition-opacity duration-200" :class="{ 'opacity-0 w-0 hidden': !sidebarExpanded }">
-              FROM GITHUB
-            </span>
-          </NuxtLink>
+    <!-- TOP ROW: 3 COLUMNS -->
+    <div class="flex-none flex gap-4 h-[25%] min-h-[160px]">
+      <!-- DAILY ITINERARY -->
+      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden" style="background: rgba(0, 180, 255, 0.05);">
+        <p class="text-[11px] text-tcc-hi tracking-widest border-b border-tcc-border/30 pb-0.5 mb-2 flex justify-between items-center font-bold">
+          <span>ITINERARY</span><span class="text-[9px] opacity-50">G-CAL: OFFLINE</span>
+        </p>
+        <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 space-y-1.5 text-[12px]">
+          <div class="flex gap-2 items-center opacity-50"><span class="w-12">--:--</span><span class="flex-grow truncate py-0.5 border-l border-tcc-border/40 pl-2">NO EVENTS SCHEDULED</span></div>
         </div>
       </div>
-
-      <!-- Task List Area -->
-      <!-- Added left margin equivalent to the collapsed sidebar width (12 units = 3rem = 48px) -->
-      <div class="flex-grow flex flex-col ml-12 overflow-hidden bg-black/20">
-        <!-- Header -->
-        <div class="p-4 border-b border-white/10 shrink-0 h-14 flex items-center justify-between">
-          <h2 class="text-sm font-bold tracking-widest text-ace-title drop-shadow-title">>> {{ currentTab.toUpperCase() }} TARGETS</h2>
-          <div class="flex items-center space-x-4">
-            <!-- Tag Mode Toggle -->
-            <label class="flex items-center space-x-2 cursor-pointer group">
-              <input type="checkbox" v-model="groupByTag" class="form-checkbox bg-transparent border-ace-border text-ace-warning focus:ring-ace-warning w-3 h-3">
-              <span class="text-xs text-ace-text font-mono group-hover:text-ace-warning tracking-widest">BY TAG</span>
-            </label>
-            <!-- Icebox Toggle (only show when icebox is selected) -->
-            <label v-if="currentTab === 'icebox'" class="flex items-center space-x-2 cursor-pointer group">
-              <input type="checkbox" v-model="showStaleIcebox" class="form-checkbox bg-transparent border-ace-border text-ace-highlight focus:ring-ace-highlight w-3 h-3">
-              <span class="text-xs text-ace-text font-mono group-hover:text-ace-highlight tracking-widest">>30 DAYS</span>
-            </label>
-            <button @click="refresh" class="text-ace-highlight hover:text-white text-xs font-mono font-bold whitespace-nowrap transition-colors" title="Reload from Disk">[ RELOAD ]</button>
+      <!-- DATALINK FEED -->
+      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden" style="background: rgba(0, 180, 255, 0.05);">
+        <p class="text-[11px] text-tcc-hi tracking-widest border-b border-tcc-border/30 pb-0.5 mb-2 font-bold flex justify-between">
+           <span>DATALINK FEED</span>
+           <span v-if="pending" class="text-[9px] animate-pulse">SCANNING...</span>
+        </p>
+        <div class="flex-grow overflow-y-auto custom-scrollbar text-[11px] space-y-2 pr-1">
+          <div v-for="(task, idx) in recentTasks" :key="idx" @click="openTask(task)" class="truncate border-l-2 py-0.5 pl-2 cursor-pointer hover:bg-tcc-hi/10" :class="[idx === 0 ? 'text-tcc-hi border-tcc-hi/40 bg-tcc-hi/5' : 'text-tcc-text border-transparent opacity-70 hover:opacity-100']">
+            {{ formatTimeOnly(task.updated_at) }} [ {{ task.title }} ]
           </div>
         </div>
-
-        <!-- List -->
-        <div class="flex-grow overflow-y-auto p-4 space-y-4">
-          <div v-if="pending" class="text-center py-4 font-mono text-xs text-ace-highlight animate-pulse tracking-widest">
-            SCANNING...
+      </div>
+      <!-- OPERATIONAL INTEL -->
+      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden" style="background: rgba(0, 180, 255, 0.05);">
+        <p class="text-[11px] text-tcc-hi tracking-widest border-b border-tcc-border/30 pb-0.5 mb-2 font-bold">OPERATIONAL INTEL</p>
+        <div class="flex-grow flex flex-col justify-center gap-3">
+          <div class="flex justify-between text-[12px]"><span class="opacity-70">ACTIVE TARGETS</span><span class="text-tcc-hi font-bold">{{ tasksInProgress.length }}</span></div>
+          <div class="flex justify-between text-[12px]"><span class="opacity-70">COMPLETION RATE</span><span class="text-green-400 font-bold">{{ completionRate }}%</span></div>
+          <div class="flex-grow flex items-center justify-center border border-tcc-border/10 bg-black/30 italic text-[11px] text-tcc-text/40">
+            [ MCP EXTENSION SLOT ]
           </div>
-          <div v-else-if="groupedTasks.length === 0" class="text-center py-4 font-mono text-xs text-ace-text tracking-widest">
-            NO SIGNALS DETECTED.
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW: BOARD vs TIMELINE -->
+    <div class="flex-grow flex gap-4 min-h-0">
+      
+      <!-- LEFT: TASK BOARD -->
+      <div class="flex-[3] bracket-box p-4 flex flex-col overflow-hidden" style="background: rgba(0, 180, 255, 0.07);">
+        <div class="flex justify-between items-center border-b border-tcc-border/30 pb-1 mb-4">
+           <p class="text-[11px] text-tcc-hi tracking-widest uppercase font-bold">Task Strategic Board</p>
+           <NuxtLink to="/tasks" class="text-[10px] text-tcc-hi hover:text-white underline transition-colors cursor-pointerglow-blue">FULL BOARD ▶</NuxtLink>
+        </div>
+        <div class="flex-grow flex flex-row overflow-x-auto custom-scrollbar gap-4 pb-1">
+          
+          <!-- TODO -->
+          <div class="flex flex-col min-w-[200px] flex-1">
+             <div class="text-[11px] font-bold text-gray-400 border-b border-gray-600/30 mb-3 px-2 flex justify-between"><span>TODO</span><span>({{ tasksTodo.length }})</span></div>
+             <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 space-y-2">
+                <div v-for="task in tasksTodo" :key="task.id" @click="openTask(task)" class="task-card cursor-pointer">
+                   <div class="flex justify-between items-center mb-1.5"><span class="text-[10px] font-bold text-gray-500 truncate pr-2">{{ task.project_name || 'UNCLASSIFIED' }}</span><span v-if="task.priority" class="tag flex-none" :class="'badge-' + task.priority.toLowerCase()">{{ task.priority.toUpperCase() }}</span></div>
+                   <div class="text-[12px] text-gray-300 font-bold leading-snug">{{ task.title }}</div>
+                </div>
+             </div>
           </div>
           
-          <template v-if="!groupByTag">
-            <div v-for="group in groupedTasks" :key="group.name" class="mb-4">
-              <h3 class="text-xs font-bold text-ace-highlight border-b border-ace-border/30 pb-1 mb-2 flex items-center cursor-pointer hover:bg-white/5" @click="toggleProject(group.name)">
-                <span class="mr-2">{{ expandedProjects.includes(group.name) ? '▼' : '▶' }}</span>
-                <span class="bg-ace-highlight text-ace-bg px-1 mr-2 tracking-widest">{{ group.name === 'Inbox' ? 'UNCLASSIFIED' : 'PJ' }}</span>
-                {{ group.name }}
-              </h3>
-              
-              <ul v-show="expandedProjects.includes(group.name)" class="space-y-1 pl-4 border-l border-ace-border/30 ml-2">
-                <li v-for="task in group.tasks" :key="task._path">
-                  <button 
-                    @click="selectedTask = task; isEditing = false"
-                    :class="[
-                      'w-full text-left text-xs font-mono py-2 px-2 transition-colors border-l-2',
-                      selectedTask?._path === task._path 
-                        ? 'bg-ace-highlight/20 border-ace-highlight text-white' 
-                        : 'border-transparent text-ace-text hover:bg-white/5 hover:border-ace-text'
-                    ]"
-                  >
-                    {{ task.title }}
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </template>
-
-          <template v-else>
-            <div v-for="tagGroup in groupedTasksTagged" :key="tagGroup.tag" class="mb-6">
-              <!-- TAG HEADER -->
-              <h3 class="text-xs font-bold text-ace-warning border-b border-ace-warning/30 pb-1 mb-3 flex items-center cursor-pointer hover:bg-white/5" @click="toggleTag(tagGroup.tag)">
-                <span class="mr-2">{{ expandedTags.includes(tagGroup.tag) ? '▼' : '▶' }}</span>
-                <span class="bg-ace-warning text-ace-bg px-1 mr-2 tracking-widest text-[10px]">TAG</span>
-                {{ tagGroup.tag }}
-              </h3>
-
-              <!-- PROJECTS WITHIN TAG -->
-              <div v-show="expandedTags.includes(tagGroup.tag)" class="ml-4">
-                <div v-for="projectGroup in tagGroup.projects" :key="projectGroup.name" class="mb-3">
-                  <h4 class="text-xs font-bold text-ace-highlight border-b border-ace-border/30 pb-1 mb-2 flex items-center cursor-pointer hover:bg-white/5" @click="toggleProject(projectGroup.name)">
-                    <span class="mr-2">{{ expandedProjects.includes(projectGroup.name) ? '▼' : '▶' }}</span>
-                    <span class="bg-ace-highlight text-ace-bg px-1 mr-2 tracking-widest text-[10px]">PJ</span>
-                    {{ projectGroup.name }}
-                  </h4>
-
-                  <ul v-show="expandedProjects.includes(projectGroup.name)" class="space-y-1 pl-4 border-l border-ace-border/30 ml-2">
-                    <li v-for="task in projectGroup.tasks" :key="task._path">
-                      <button 
-                        @click="selectedTask = task; isEditing = false"
-                        :class="[
-                          'w-full text-left text-xs font-mono py-2 px-2 transition-colors border-l-2',
-                          selectedTask?._path === task._path 
-                            ? 'bg-ace-highlight/20 border-ace-highlight text-white' 
-                            : 'border-transparent text-ace-text hover:bg-white/5 hover:border-ace-text'
-                        ]"
-                      >
-                        {{ task.title }}
-                      </button>
-                    </li>
-                  </ul>
+          <!-- IN PROGRESS -->
+          <div class="flex flex-col min-w-[220px] flex-1 bg-tcc-hi/5 border-x border-tcc-hi/10 px-1">
+             <div class="text-[11px] font-bold text-tcc-hi border-b border-tcc-hi/30 mb-3 px-2 flex justify-between"><span>ENGAGED</span><span>({{ tasksInProgress.length }})</span></div>
+             <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 space-y-2">
+                <div v-for="task in tasksInProgress" :key="task.id" @click="openTask(task)" class="task-card border-tcc-hi/40 relative cursor-pointer hover:border-tcc-hi">
+                   <div class="absolute left-0 top-0 bottom-0 w-1 bg-tcc-hi glow-blue"></div>
+                   <div class="flex justify-between items-center mb-1.5 pl-2"><span class="text-[10px] font-bold text-tcc-hi truncate pr-2">{{ task.project_name || 'UNCLASSIFIED' }}</span><span v-if="task.priority" class="tag flex-none" :class="'badge-' + (task.priority || 'medium').toLowerCase()">{{ (task.priority || 'MEDIUM').toUpperCase() }}</span></div>
+                   <div class="text-[12px] text-white font-bold leading-snug pl-2">{{ task.title }}</div>
                 </div>
-              </div>
-            </div>
-          </template>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT PANEL: Task Details / Editor -->
-    <div class="w-2/3 flex flex-col h-full relative">
-      <div v-if="!selectedTask" class="flex-grow glass-panel flex flex-col items-center justify-center opacity-50">
-        <div class="w-16 h-16 border-2 border-ace-highlight rounded-full animate-ping opacity-20 absolute"></div>
-        <div class="text-center z-10 font-mono tracking-widest">
-          <p class="text-ace-title drop-shadow-title mb-2">>> WAITING FOR SELECTION</p>
-          <p class="text-xs text-ace-text">SELECT A TARGET FROM THE DATALINK TO VIEW DETAILS</p>
-        </div>
-      </div>
-      
-      <div v-else class="flex-grow flex flex-col glass-panel overflow-hidden border-t-2 border-t-ace-highlight">
-        <!-- Detail Header -->
-        <div class="p-6 border-b border-ace-border/30 shrink-0 bg-black/20">
-          <div class="flex justify-between items-start mb-3">
-            <h2 class="text-2xl font-bold text-white tracking-wide drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">{{ selectedTask.title }}</h2>
-            <div class="flex space-x-2 shrink-0">
-              <button v-if="currentTab !== 'archived'" @click="toggleEdit" class="ace-button text-xxs border-ace-text hover:bg-ace-highlight hover:text-ace-bg">
-                >> EDIT CONTENT
-              </button>
-            </div>
+             </div>
           </div>
-          <div class="flex items-center space-x-6 text-xxs text-ace-text font-mono">
-            <span class="bg-ace-bg border border-ace-border px-2 text-ace-highlight">PJ: {{ selectedTask.project_name || 'UNCLASSIFIED' }}</span>
-            <span v-if="selectedTask.issue">
-              <span v-if="!selectedTask.issue_url" class="border-b border-gray-600 pb-0.5">REF# {{ selectedTask.issue }}</span>
-              <a v-else :href="selectedTask.issue_url" target="_blank" class="border-b border-ace-highlight pb-0.5 text-ace-highlight hover:text-white transition-colors">REF# {{ selectedTask.issue }} ↗</a>
-            </span>
-            <span class="border-b border-gray-600 pb-0.5">UPDATED: {{ new Date(selectedTask.updated_at).toLocaleString() }}</span>
+          
+          <!-- DONE -->
+          <div class="flex flex-col min-w-[200px] flex-1">
+             <div class="text-[11px] font-bold text-green-500/70 border-b border-green-900/30 mb-3 px-2 flex justify-between"><span>COMPLETED</span><span>({{ tasksDone.length }})</span></div>
+             <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 opacity-60 space-y-2">
+                <div v-for="task in tasksDone" :key="task.id" @click="openTask(task)" class="task-card cursor-pointer hover:opacity-100 transition-opacity">
+                   <div class="text-[11px] text-tcc-text truncate">{{ task.title }}</div>
+                </div>
+             </div>
           </div>
-        </div>
-
-        <div class="flex-grow overflow-y-auto p-6 relative" ref="detailContainer">
-          <!-- View Mode (Markdown Rendered) -->
-          <div class="prose prose-invert prose-sm max-w-none prose-headings:font-mono prose-headings:text-ace-highlight prose-a:text-ace-highlight prose-blockquote:border-ace-border prose-blockquote:bg-ace-bg/30 prose-blockquote:px-4 prose-blockquote:py-1 prose-pre:bg-[#071526] prose-pre:border prose-pre:border-ace-border/30 font-sans" v-html="renderMarkdown(selectedTask.body)">
-          </div>
-        </div>
-
-        <!-- Action Footer -->
-        <div class="p-4 border-t border-ace-border/30 shrink-0 flex space-x-3 bg-black/20">
-            <button @click="moveTo(selectedTask, 'inProgress')" v-if="currentTab !== 'inProgress'" class="ace-button ace-button-primary px-3 text-xxs">>> {{ currentTab === 'archived' ? 'RESTORE: IN PROGRESS' : 'SET: IN PROGRESS' }}</button>
-            <button @click="moveTo(selectedTask, 'icebox')" v-if="currentTab !== 'icebox'" class="ace-button ace-button-warning px-3 text-xxs">>> {{ currentTab === 'archived' ? 'RESTORE: ICEBOX' : 'SET: ICEBOX' }}</button>
-            <button @click="moveTo(selectedTask, 'archived')" v-if="currentTab !== 'archived'" class="ace-button border-red-500 text-red-400 hover:bg-red-500 hover:text-white px-3 text-xxs ml-auto">>> ARCHIVE TARGET</button>
-        </div>
-      </div>
-    </div>
-    <!-- FULL SCREEN EDITOR OVERLAY -->
-    <div v-if="isEditing" class="fixed inset-0 z-50 bg-ace-bg/95 backdrop-blur-sm flex flex-col font-mono">
-      <!-- Editor Header -->
-      <div class="flex-none p-4 border-b border-ace-highlight/50 flex justify-between items-center bg-black/40">
-        <div class="flex flex-col space-y-2 w-1/2">
-          <div class="flex items-center space-x-2">
-            <span class="text-xs text-ace-highlight tracking-widest w-16">TITLE:</span>
-            <input v-model="editTitle" type="text" class="flex-grow bg-transparent border-b border-ace-border px-2 text-lg font-bold text-white focus:outline-none focus:border-ace-highlight">
-          </div>
-          <div class="flex items-center space-x-2">
-            <span class="text-xs text-ace-highlight tracking-widest w-16">PROJECT:</span>
-            <input v-model="editProject" list="index-projects-list" type="text" class="bg-transparent border-b border-ace-border px-2 text-xs text-white focus:outline-none w-48">
-          </div>
-        </div>
-        <div class="flex items-center space-x-4">
-          <button @click="isEditing = false" class="text-ace-text hover:text-white transition-colors text-xs tracking-widest">[ DISCARD ]</button>
-          <button @click="saveEdit" class="ace-button ace-button-primary px-6" :disabled="savingEdit">
-             {{ savingEdit ? 'UPLOADING...' : 'COMMIT CHANGES >>' }}
-          </button>
         </div>
       </div>
 
-      <!-- Editor Body (2 Columns) -->
-      <div class="flex-grow flex overflow-hidden">
-        <!-- Left Column: Toolbar + Textarea -->
-        <div class="w-1/2 flex flex-col border-r border-ace-highlight/30">
-          <div class="flex-none bg-ace-panel p-2 flex space-x-2 border-b border-ace-border/50 overflow-x-auto">
-            <button @click="insertMarkdown('# ', '')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm font-bold" title="Heading 1">H1</button>
-            <button @click="insertMarkdown('## ', '')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm font-bold" title="Heading 2">H2</button>
-            <button @click="insertMarkdown('### ', '')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm font-bold" title="Heading 3">H3</button>
-            <div class="w-px h-6 bg-ace-border/50 self-center mx-1"></div>
-            <button @click="insertMarkdown('**', '**')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm font-bold" title="Bold">B</button>
-            <button @click="insertMarkdown('*', '*')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm italic" title="Italic">I</button>
-            <div class="w-px h-6 bg-ace-border/50 self-center mx-1"></div>
-            <button @click="insertMarkdown('> ', '')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm" title="Quote">”</button>
-            <button @click="insertMarkdown('\n```\n', '\n```\n')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm font-mono" title="Code Block">&lt;/&gt;</button>
-            <button @click="insertMarkdown('[', '](url)')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm font-mono" title="Link">⏏</button>
-            <div class="w-px h-6 bg-ace-border/50 self-center mx-1"></div>
-            <button @click="insertMarkdown('- ', '')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm font-bold" title="Unordered List">•</button>
-            <button @click="insertMarkdown('1. ', '')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm font-bold" title="Ordered List">1.</button>
-            <button @click="insertMarkdown('- [ ] ', '')" class="w-8 h-8 flex items-center justify-center text-xs text-ace-text hover:bg-ace-highlight hover:text-black border border-ace-border rounded-sm font-bold border-dashed" title="Task List">☑</button>
+      <!-- RIGHT: TACTICAL TIMELINE (Restored Gantt) -->
+      <div class="flex-[2] bracket-box p-4 flex flex-col overflow-hidden" style="background: rgba(0, 180, 255, 0.05);">
+        <div class="flex justify-between items-center border-b border-tcc-border/30 pb-1 mb-2">
+          <p class="text-[11px] text-tcc-hi tracking-widest uppercase font-bold">Tactical Timeline</p>
+          <div class="flex gap-4 text-[10px] text-tcc-hi/70 font-bold items-center">
+            <button @click="changeWeek(-1)" class="hover:text-tcc-hi px-2 py-0.5 border border-tcc-border/50 bg-tcc-panel transition-colors">◀ PREV</button>
+            <span class="tracking-widest">{{ weekLabelRange }}</span>
+            <button @click="changeWeek(1)" class="hover:text-tcc-hi px-2 py-0.5 border border-tcc-border/50 bg-tcc-panel transition-colors">NEXT ▶</button>
           </div>
-          <textarea 
-            ref="editorTextarea"
-            v-model="editContent" 
-            class="flex-grow w-full bg-black/40 p-4 text-sm font-sans text-white focus:outline-none resize-none leading-relaxed"
-            placeholder="Write markdown here..."
-            @select="updateSelection"
-            @keyup="updateSelection"
-            @click="updateSelection"
-          ></textarea>
         </div>
         
-        <!-- Right Column: Real-time Preview -->
-        <div class="w-1/2 p-6 overflow-y-auto bg-[#050c14] relative" ref="previewContainer">
-          <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] z-0"></div>
-          <div class="relative z-10 prose prose-invert prose-sm max-w-none prose-headings:font-mono prose-headings:text-ace-highlight prose-a:text-ace-highlight prose-blockquote:border-ace-border prose-blockquote:bg-ace-bg/30 prose-blockquote:px-4 prose-blockquote:py-1 prose-pre:bg-[#071526] prose-pre:border prose-pre:border-ace-border/30 font-sans" v-html="renderMarkdown(editContent)"></div>
+        <div class="flex-grow overflow-hidden flex flex-col text-[10px]">
+          <!-- Gantt Header -->
+          <div class="flex border-b border-tcc-border/20 mb-2 font-bold text-tcc-text text-center mt-2">
+            <div class="w-24 border-r border-tcc-border/20 px-1 text-left opacity-60">TARGET</div>
+            <div class="flex-grow grid grid-cols-7">
+               <div v-for="(day, i) in currentWeekDays" :key="i" class="flex flex-col pb-1" :class="day.isToday ? 'text-tcc-hi glow-blue bg-tcc-hi/10' : 'opacity-60'">
+                 <span class="text-[9px]">{{ day.dayName }}</span>
+                 <span class="text-[11px]">{{ day.dateNumber }}</span>
+               </div>
+            </div>
+          </div>
+          
+          <!-- Gantt Rows -->
+          <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 space-y-3 mt-1">
+             <div v-for="task in timelineTasks" :key="task.id" class="flex items-center group">
+               <div class="w-24 pl-1 truncate pr-2 group-hover:text-tcc-hi transition-colors cursor-pointer" :class="task.status === 'done' ? 'opacity-40 line-through' : 'font-bold text-tcc-text'" @click="openTask(task)" :title="task.title">
+                 {{ truncateTask(task.title) }}
+               </div>
+               <!-- Gantt Bar Calculation Placeholder -->
+               <div class="flex-grow grid grid-cols-7 h-5 relative" :title="'Updated: ' + formatTimeOnly(task.updated_at)">
+                  <div class="absolute h-full" :class="getGanttBarClass(task)" :style="getGanttBarStyle(task)"></div>
+               </div>
+             </div>
+             <div v-if="timelineTasks.length === 0" class="text-center opacity-30 italic mt-8 text-xs">NO ACTIVE TARGETS IN THIS WINDOW</div>
+          </div>
+          
+          <div class="mt-auto pt-4 flex gap-4 text-[9px] justify-center opacity-70 tracking-widest border-t border-tcc-border/10">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-2 bg-tcc-hi shadow-[0_0_4px_#38bdf8]"></span> ACTIVE</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-2 bg-tcc-warn shadow-[0_0_4px_#f59e0b]"></span> RISK / HIGH PRIO</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-2 bg-green-500 shadow-[0_0_4px_#22c55e]"></span> DONE</span>
+          </div>
         </div>
       </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { marked } from 'marked'
-import { useProjects } from '~/composables/useProjects'
 
 const router = useRouter()
-const { projectsData, loadProjects, resolveProjectId } = useProjects()
 
-const tabs = [
-  { label: 'In Progress', value: 'inProgress' },
-  { label: 'Icebox', value: 'icebox' },
-  { label: 'Archived', value: 'archived' }
-]
-
-const currentTab = ref('inProgress')
-const showStaleIcebox = ref(false)
-const groupByTag = ref(false)
-const allTasks = ref([])
 const pending = ref(true)
-const sidebarExpanded = ref(false)
+const allTasks = ref([])
+const selectedProject = ref('ALL UNITS')
 
-// Selection & Editing state
-const selectedTask = ref(null)
-const expandedProjects = ref([])
-const expandedTags = ref([])
-const isEditing = ref(false)
-const editTitle = ref('')
-const editProject = ref('')
-const editContent = ref('')
-const savingEdit = ref(false)
-const editorTextarea = ref(null)
-const previewContainer = ref(null)
-const detailContainer = ref(null)
-
-const selectionStart = ref(0)
-const selectionEnd = ref(0)
-
-const selectTab = (val) => {
-  currentTab.value = val
-  selectedTask.value = null
-  isEditing.value = false
-}
-
-const toggleProject = (projectName) => {
-  if (expandedProjects.value.includes(projectName)) {
-    expandedProjects.value = expandedProjects.value.filter(p => p !== projectName)
-  } else {
-    expandedProjects.value.push(projectName)
-  }
-}
-
-const toggleTag = (tagName) => {
-  if (expandedTags.value.includes(tagName)) {
-    expandedTags.value = expandedTags.value.filter(t => t !== tagName)
-  } else {
-    expandedTags.value.push(tagName)
-  }
-}
-
-const toggleEdit = () => {
-  if (!isEditing.value) {
-    editTitle.value = selectedTask.value.title
-    editProject.value = selectedTask.value.project_name || 'Inbox'
-    editContent.value = selectedTask.value.body
-    
-    // Auto focus textarea
-    setTimeout(() => {
-      if (editorTextarea.value) editorTextarea.value.focus()
-      applyAccordionLogic()
-    }, 100)
-  }
-  isEditing.value = !isEditing.value
-}
-
-const applyAccordionLogic = () => {
-  const containers = [previewContainer.value, detailContainer.value].filter(Boolean);
-  
-  containers.forEach(container => {
-    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    headings.forEach(heading => {
-    // Only bind once
-    if (heading.dataset.accordionBound) return;
-    heading.dataset.accordionBound = "true";
-    
-    heading.style.cursor = 'pointer';
-    heading.style.display = 'flex';
-    heading.style.alignItems = 'center';
-    
-    const indicator = document.createElement('span');
-    indicator.textContent = '▼';
-    indicator.style.marginRight = '8px';
-    indicator.style.fontSize = '0.8em';
-    indicator.style.transition = 'transform 0.2s';
-    
-    // Check if it already has one to prevent duplication on re-renders, 
-    // actually renderMarkdown recreates DOM so it's fine
-    heading.insertBefore(indicator, heading.firstChild);
-    
-    heading.addEventListener('click', () => {
-      const level = parseInt(heading.tagName.substring(1));
-      let current = heading.nextElementSibling;
-      let isCollapsed = heading.dataset.collapsed === "true";
-      
-      // Toggle state
-      isCollapsed = !isCollapsed;
-      heading.dataset.collapsed = isCollapsed ? "true" : "false";
-      indicator.style.transform = isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
-      
-      while (current) {
-        // Stop if we hit a heading of the same or higher level (smaller number)
-        if (current.tagName.match(/^H[1-6]$/)) {
-          const currentLevel = parseInt(current.tagName.substring(1));
-          if (currentLevel <= level) break;
-        }
-        
-        current.style.display = isCollapsed ? 'none' : '';
-        current = current.nextElementSibling;
-      }
-    });
-  });
-  });
-}
-
-// Watch for content changes to re-apply accordion logic to new elements
-watch(editContent, () => {
-  if (isEditing.value) {
-    setTimeout(applyAccordionLogic, 50); // wait for DOM update
-  }
-})
-
-// Watch for selectedTask changes to apply accordion to detail view
-watch(selectedTask, () => {
-  if (selectedTask.value && !isEditing.value) {
-    setTimeout(applyAccordionLogic, 50);
-  }
-})
-
-const updateSelection = (e) => {
-  selectionStart.value = e.target.selectionStart
-  selectionEnd.value = e.target.selectionEnd
-}
-
-const insertMarkdown = (prefix, suffix) => {
-  if (!editorTextarea.value) return
-  
-  const text = editContent.value
-  const start = selectionStart.value
-  const end = selectionEnd.value
-  const selectedText = text.substring(start, end)
-  
-  const insertText = prefix + selectedText + suffix
-  
-  editContent.value = text.substring(0, start) + insertText + text.substring(end)
-  
-  // Restore focus and cursor position after Vue updates
-  setTimeout(() => {
-    if (editorTextarea.value) {
-      editorTextarea.value.focus()
-      const newCursorPos = start + prefix.length + selectedText.length
-      editorTextarea.value.setSelectionRange(newCursorPos, newCursorPos)
-      updateSelection({ target: editorTextarea.value })
-    }
-  }, 0)
-}
-
-const saveEdit = async () => {
-  if (!selectedTask.value) return
-  savingEdit.value = true
-  try {
-    const filename = selectedTask.value._file || selectedTask.value._path?.split(/[\\/]/).pop() || `${selectedTask.value.id}.md`
-    
-    // Actually, we created saveMarkdown which expects Frontmatter obj and Content body separate!
-    // Wait, let's pass the existing frontmatter back.
-    if (window.electronAPI && window.electronAPI.saveMarkdown) {
-      const customDir = localStorage.getItem('tasksDir') || undefined
-      
-      // Resolve project ID and Name using composable
-      const inputName = editProject.value || '未分類'
-      const matchedId = await resolveProjectId(inputName)
-
-      const fullContent = `---
-id: "${selectedTask.value.id || ''}"
-title: "${editTitle.value.replace(/"/g, '\\"')}"
-project_id: "${matchedId}"
-project_name: "${inputName.replace(/"/g, '\\"')}"
-issue: ${selectedTask.value.issue || null}
-status: "${selectedTask.value.status}"
-created_at: "${selectedTask.value.created_at || new Date().toISOString()}"
-updated_at: "${new Date().toISOString()}"
----
-
-${editContent.value}
-`
-      
-      const response = await window.electronAPI.saveMarkdown(filename, fullContent, customDir)
-      
-      if (response.success) {
-        selectedTask.value.title = editTitle.value
-        selectedTask.value.project_id = matchedId
-        selectedTask.value.project_name = inputName
-        selectedTask.value.body = editContent.value
-        selectedTask.value.updated_at = new Date().toISOString()
-        isEditing.value = false
-        await refresh() // Refetch everything
-      } else {
-        alert('Failed to save edits: ' + response.error)
-      }
-    }
-  } catch (err) {
-    console.error(err)
-    alert('Error saving edit.')
-  } finally {
-    savingEdit.value = false
-  }
-}
+const weekOffset = ref(0)
+const githubRepoSetting = ref('')
 
 const refresh = async () => {
-    pending.value = true
-    try {
-        if (window.electronAPI && window.electronAPI.getAllMarkdowns) {
-            const customDir = localStorage.getItem('tasksDir') || undefined
-            
-            // Also fetch projects datalink
-            await loadProjects()
-
-            const data = await window.electronAPI.getAllMarkdowns(customDir)
-            
-            // Keep all tasks (including archived), sort by updated_at desc
-            allTasks.value = data
-              .sort((a,b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-            
-            // Auto expand newly discovered projects
-            const existingGroups = new Set(allTasks.value.map(t => t.project_name || 'Inbox'))
-            existingGroups.forEach(g => {
-              if (!expandedProjects.value.includes(g)) expandedProjects.value.push(g)
-            })
-
-            // Auto expand newly discovered tags
-            if (groupByTag.value) {
-                const allTagNames = new Set()
-                allTasks.value.forEach(t => {
-                    const pid = String(t.project_id)
-                    const project = projectsData.value.project[pid]
-                    const tags = (project && project.tags && project.tags.length > 0) ? project.tags : ['UNTAGGED']
-                    tags.forEach(tag => allTagNames.add(tag))
-                })
-                allTagNames.forEach(tag => {
-                    if (!expandedTags.value.includes(tag)) expandedTags.value.push(tag)
-                })
-            }
-            
-            // Re-bind selected Task reference if it existed
-            if (selectedTask.value) {
-                const refreshed = allTasks.value.find(t => t._path === selectedTask.value._path)
-                selectedTask.value = refreshed || null
-            }
-        }
-    } catch (err) {
-        console.error('Error fetching markdowns:', err)
-    } finally {
-        pending.value = false
+  pending.value = true
+  try {
+    if (window.electronAPI && window.electronAPI.getAllMarkdowns) {
+      const data = await window.electronAPI.getAllMarkdowns()
+      allTasks.value = data.sort((a,b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
     }
+  } catch (err) {
+    console.error('Error fetching markdowns:', err)
+  } finally {
+    pending.value = false
+  }
 }
 
 onMounted(() => {
-    if (!sessionStorage.getItem('appStarted')) {
-        sessionStorage.setItem('appStarted', 'true')
-        const startup = localStorage.getItem('startupScreen') || 'tasks'
-        if (startup === 'briefing') {
-            router.replace('/briefing')
-            return
-        } else if (startup === 'report') {
-            router.replace('/report')
-            return
-        } else if (startup === 'timeline') {
-            router.replace('/timeline')
-            return
-        }
-    }
-    refresh()
+  refresh()
+  githubRepoSetting.value = localStorage.getItem('githubRepo') || ''
 })
 
-const renderMarkdown = (text) => {
-    if (!text) return ''
-    return marked(text)
-}
+const uniqueProjects = computed(() => {
+  const s = new Set(allTasks.value.map(t => t.project_name || 'UNCLASSIFIED'))
+  return Array.from(s).sort()
+})
 
 const filteredTasks = computed(() => {
-  if (!allTasks.value) return []
-  
-  let filtered = allTasks.value.filter(t => t.status === currentTab.value)
-  
-  // Apply 30-day filter for icebox
-  if (currentTab.value === 'icebox' && !showStaleIcebox.value) {
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    
-    filtered = filtered.filter(t => {
-      const updatedDate = new Date(t.updated_at || t.created_at)
-      return updatedDate >= thirtyDaysAgo
-    })
+  if(selectedProject.value === 'ALL UNITS') return allTasks.value
+  return allTasks.value.filter(t => (t.project_name || 'UNCLASSIFIED') === selectedProject.value)
+})
+
+const recentTasks = computed(() => filteredTasks.value.slice(0, 10))
+const tasksTodo = computed(() => filteredTasks.value.filter(t => t.status === 'todo' || !t.status))
+const tasksInProgress = computed(() => filteredTasks.value.filter(t => t.status === 'in-progress' || t.status === 'inProgress' || t.status === 'engaged'))
+const tasksDone = computed(() => filteredTasks.value.filter(t => t.status === 'done' || t.status === 'archived'))
+
+const overdueTasks = computed(() => {
+  // Mock logic - if there's a priority=high and it's active
+  return tasksInProgress.value.filter(t => String(t.priority).toLowerCase() === 'high')
+})
+
+const completionRate = computed(() => {
+  const total = tasksTodo.value.length + tasksInProgress.value.length + tasksDone.value.length
+  if (total === 0) return 0
+  return Math.round((tasksDone.value.length / total) * 100)
+})
+
+const openTask = (task) => {
+  const hasExtUrl = task.issue_url || task.url || task.html_url
+  if (hasExtUrl && window.electronAPI && window.electronAPI.openExternal) {
+    window.electronAPI.openExternal(hasExtUrl)
+    return
   }
   
-  return filtered
+  // Also try to form a GH url if there's an issue number
+  if (task.issue && githubRepoSetting.value && window.electronAPI && window.electronAPI.openExternal && !task._file) {
+     window.electronAPI.openExternal(`https://github.com/${githubRepoSetting.value}/issues/${task.issue}`)
+     return
+  }
+
+  // Otherwise route to Local TASKS
+  router.push({ path: '/tasks', query: { id: task.id } })
+}
+
+// TIMELINE LOGIC
+const changeWeek = (delta) => {
+  weekOffset.value += delta
+}
+
+const currentDateRef = computed(() => {
+  const d = new Date()
+  d.setDate(d.getDate() + (weekOffset.value * 7))
+  return d
 })
 
-const groupedTasksFlat = computed(() => {
-  const groups = {}
-  filteredTasks.value.forEach(t => {
-    const p = t.project_name || 'Inbox'
-    if (!groups[p]) groups[p] = []
-    groups[p].push(t)
+const currentWeekDays = computed(() => {
+  const days = []
+  const current = new Date(currentDateRef.value)
+  const dayOfWeek = current.getDay() // 0 is Sunday
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek // Adjust to make Monday the start
+  
+  current.setDate(current.getDate() + mondayOffset)
+  
+  const today = new Date()
+  
+  for(let i=0; i<7; i++) {
+    const d = new Date(current)
+    d.setDate(current.getDate() + i)
+    days.push({
+       dateNumber: d.getDate(),
+       dayName: ['S','M','T','W','T','F','S'][d.getDay()], // Short name
+       fullDate: new Date(d).toISOString().split('T')[0],
+       isToday: d.toDateString() === today.toDateString()
+    })
+  }
+  return days
+})
+
+const weekLabelRange = computed(() => {
+  const days = currentWeekDays.value
+  const m = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+  const start = new Date(days[0].fullDate)
+  const end = new Date(days[6].fullDate)
+  return `${m[start.getMonth()]} ${start.getDate()} - ${m[end.getMonth()]} ${end.getDate()}`
+})
+
+const timelineTasks = computed(() => {
+  // Show active tasks and recently updated ones that fall into this week
+  // For simplicity, limit to 20
+  return filteredTasks.value.slice(0, 20)
+})
+
+const truncateTask = (title) => {
+  if(!title) return 'Unknown'
+  return title.length > 12 ? title.substring(0,10)+'...' : title
+}
+
+const getGanttBarStyle = (task) => {
+  // Very rough mock mapping: 
+  // determine start and end column mapping from 1 to 7 based on updated_at
+  const dateStr = task.updated_at || task.created_at
+  if (!dateStr) return { left: '10%', right: '50%' }
+  
+  const d = new Date(dateStr)
+  let dayIdx = -1
+  currentWeekDays.value.forEach((day, i) => {
+     if(day.fullDate === d.toISOString().split('T')[0]) dayIdx = i
   })
   
-  return Object.keys(groups).map(k => {
-    return { name: k, tasks: groups[k] }
-  }).sort((a,b) => {
-    if (a.name === 'Inbox') return 1 // Inbox at the bottom
-    if (b.name === 'Inbox') return -1
-    return a.name.localeCompare(b.name)
-  })
-})
-
-const groupedTasksByTag = computed(() => {
-  const tagGroups = {}
-
-  filteredTasks.value.forEach(t => {
-    const pid = String(t.project_id)
-    const project = projectsData.value.project[pid]
-    const tags = (project && project.tags && project.tags.length > 0)
-      ? project.tags
-      : ['UNTAGGED']
-    const pName = t.project_name || 'Inbox'
-
-    tags.forEach(tag => {
-      if (!tagGroups[tag]) tagGroups[tag] = {}
-      if (!tagGroups[tag][pName]) tagGroups[tag][pName] = []
-      tagGroups[tag][pName].push(t)
-    })
-  })
-
-  return Object.entries(tagGroups)
-    .map(([tag, projects]) => ({
-      tag,
-      projects: Object.entries(projects).map(([name, tasks]) => ({
-        name,
-        tasks
-      })).sort((a, b) => a.name.localeCompare(b.name))
-    }))
-    .sort((a, b) => {
-      if (a.tag === 'UNTAGGED') return 1
-      if (b.tag === 'UNTAGGED') return -1
-      return a.tag.localeCompare(b.tag)
-    })
-})
-
-const groupedTasks = computed(() => {
-  return groupByTag.value ? [] : groupedTasksFlat.value
-})
-
-const groupedTasksTagged = computed(() => {
-  return groupByTag.value ? groupedTasksByTag.value : []
-})
-
-const moveTo = async (task, newStatus) => {
-  try {
-      const filename = task._file || task._path?.split(/[\\/]/).pop() || `${task.id}.md`
-      if (window.electronAPI && window.electronAPI.updateMarkdownStatus) {
-        const customDir = localStorage.getItem('tasksDir') || undefined
-        const response = await window.electronAPI.updateMarkdownStatus(filename, newStatus, customDir)
-        if (response.success) {
-           await refresh()
-           selectedTask.value = null
-        } else {
-           alert('Failed to update status: ' + response.error)
-        }
-      }
-  } catch (error) {
-      console.error(error)
+  if (dayIdx === -1) {
+    if (d < new Date(currentWeekDays.value[0].fullDate)) {
+       return { left: '0%', width: '10%' }
+    } else {
+       return { left: '90%', width: '10%' }
+    }
   }
+  
+  const pct = (dayIdx / 7) * 100
+  // Span across 2 days artificially
+  return { left: `${pct}%`, width: `${(1/7)*100*2}%` }
+}
+
+const getGanttBarClass = (task) => {
+  if (task.status === 'done' || task.status === 'archived') {
+    return 'bg-green-500/80 border-r border-green-500'
+  }
+  if (String(task.priority).toLowerCase() === 'high') {
+    return 'bg-tcc-warn/60 border-r border-tcc-warn shadow-[0_0_8px_rgba(245,158,11,0.4)]'
+  }
+  return 'bg-tcc-hi shadow-[0_0_10px_rgba(186,230,253,0.3)] border-r border-tcc-hi/80'
+}
+
+const formatTimeOnly = (isoString) => {
+  if (!isoString) return ''
+  const d = new Date(isoString)
+  const pad = (n) => n.toString().padStart(2, '0')
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 </script>
+
+<style scoped>
+.pj-tab {
+  @apply px-4 py-1.5 text-[11px] border-r border-tcc-border/30 text-tcc-text opacity-70 cursor-pointer transition-colors whitespace-nowrap;
+}
+.pj-tab:hover { @apply bg-tcc-hi/10; }
+.pj-tab.active {
+  @apply opacity-100 bg-tcc-hi/20 text-tcc-hi border-b-2 border-b-tcc-hi font-bold;
+}
+.task-card {
+  background-color: rgba(10, 26, 53, 0.45);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(0, 140, 210, 0.25);
+  padding: 0.75rem;
+  transition: all 0.2s;
+}
+.task-card:hover {
+  border-color: rgba(0, 212, 255, 0.6);
+  background-color: rgba(0, 212, 255, 0.06);
+  box-shadow: 0 0 8px rgba(0,212,255,0.2);
+}
+.tag {
+  @apply text-[9px] px-1.5 py-0.5 border font-bold uppercase;
+}
+</style>

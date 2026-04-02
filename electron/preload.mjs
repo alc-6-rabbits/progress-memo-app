@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveProjects: (data, customDirPath) => ipcRenderer.invoke('save-projects', data, customDirPath),
     selectDirectory: () => ipcRenderer.invoke('select-directory'),
     saveWeeklyReport: (content, customDirPath) => ipcRenderer.invoke('save-weekly-report', content, customDirPath),
+    saveReport: (filename, content, customDirPath) => ipcRenderer.invoke('save-report', filename, content, customDirPath),
+    getAllReports: (customDirPath) => ipcRenderer.invoke('get-all-reports', customDirPath),
     // SafeStorage API
     isSafeStorageAvailable: () => ipcRenderer.invoke('safe-storage-is-available'),
     encryptString: (plainText) => ipcRenderer.invoke('safe-storage-encrypt', plainText),

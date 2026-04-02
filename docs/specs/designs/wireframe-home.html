@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+<meta charset="UTF-8">
+<title>TCC Wireframe - HOME</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tcc: { bg: '#03080f', panel: '#071526', border: '#2a6a9a', text: '#8cb4cf', hi: '#bae6fd', warn: '#f59e0b', critical: '#ef4444', dim: '#1c3a52' }
+      },
+      fontFamily: { mono: ['"Share Tech Mono"', 'monospace'] }
+    }
+  }
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  body { background: #03080f; font-family: 'Share Tech Mono', monospace; }
+  .scanlines { position: fixed; inset: 0; pointer-events: none; z-index: 9999; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px); }
+  .glow-blue { text-shadow: 0 0 8px rgba(125,211,252,0.8); }
+  .glow-red  { text-shadow: 0 0 8px rgba(239,68,68,0.8); }
+  .bracket-box { position: relative; border: 1px solid #2a6a9a; }
+  .bracket-box::before, .bracket-box::after { content: ''; position: absolute; width: 12px; height: 12px; }
+  .bracket-box::before { top: -1px; left: -1px; border-top: 2px solid #38bdf8; border-left: 2px solid #38bdf8; }
+  .bracket-box::after  { top: -1px; right: -1px; border-top: 2px solid #38bdf8; border-right: 2px solid #38bdf8; }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: rgba(42, 106, 154, 0.1); }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a6a9a; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+  .nav-link { @apply block w-full text-left px-4 py-2 text-tcc-text tracking-widest text-sm hover:text-tcc-hi transition-colors cursor-pointer; }
+  .nav-link.active { background: #c98a2c; color: #030b14; font-weight: bold; }
+  .tag { @apply text-[11px] px-2 py-0.5 border border-tcc-border text-tcc-text whitespace-nowrap; }
+  .badge-todo { border-color:#6b7280; color:#9ca3af; } .badge-inprog { border-color:#38bdf8; color:#7dd3fc; } .badge-done { border-color:#22c55e; color:#86efac; } .badge-icebox { border-color:#8b5cf6; color:#c4b5fd; } .badge-high { border-color:#ef4444; color:#fca5a5; } .badge-medium { border-color:#f59e0b; color:#fde68a; } .badge-low { border-color:#6b7280; color:#9ca3af; }
+  .btn { @apply px-3 py-1 text-xs border tracking-widest transition-all; }
+  .btn-primary { @apply border-tcc-hi text-tcc-hi hover:bg-tcc-hi hover:text-tcc-bg; }
+  .pj-tab { @apply px-4 py-1 text-[11px] border-r border-tcc-border/30 hover:bg-tcc-hi/10 transition-colors cursor-pointer text-tcc-text opacity-70; }
+  .pj-tab.active { @apply opacity-100 bg-tcc-hi/20 text-tcc-hi border-b border-b-tcc-hi; }
+  .task-card { @apply bg-tcc-panel/40 border border-tcc-border/30 p-3 mb-2 hover:border-tcc-hi/50 transition-all cursor-default; }
+</style>
+</head>
+<body class="h-screen w-screen overflow-hidden text-tcc-text font-mono flex flex-col">
+<div class="scanlines"></div>
+
+<!-- HEADER -->
+<header class="flex-none flex justify-between items-center px-8 py-3 border-b border-tcc-border bg-tcc-panel/60">
+  <div></div>
+  <h1 class="text-2xl tracking-widest glow-blue text-tcc-hi flex items-center gap-3">
+    <span class="text-tcc-border">[</span>
+    <span>TACTICAL COMMAND CENTER</span>
+    <span class="text-tcc-warn" id="ver-label">v1.5.0</span>
+    <span class="text-tcc-border">]</span>
+  </h1>
+  <div class="text-right text-xs text-tcc-text/70 tracking-widest">
+    <p id="hdate"></p><p id="htime"></p>
+  </div>
+</header>
+
+<!-- BODY -->
+<div class="flex flex-row flex-grow overflow-hidden">
+  <!-- SIDEBAR -->
+  <nav class="w-44 flex-none flex flex-col border-r border-tcc-border/50 bg-tcc-panel/30 pt-6 space-y-1">
+    <a href="wireframe-home.html" class="nav-link active">HOME</a>
+    <a href="wireframe-tasks.html" class="nav-link">TASKS</a>
+    <a href="wireframe-reports.html" class="nav-link">REPORTS</a>
+    <a href="wireframe-settings.html" class="nav-link">SETTINGS</a>
+    <div class="flex-grow"></div>
+    <div class="px-3 pb-4">
+      <button class="btn btn-primary w-full text-center">+ NEW TASK</button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT: HOME (BRIEFING) -->
+  <main class="flex-grow flex flex-col p-6 gap-4 overflow-hidden relative">
+    
+    <!-- PROJECT SELECTOR -->
+    <div class="flex-none flex items-center border border-tcc-border/30 bg-tcc-panel/40 overflow-hidden">
+      <div class="px-3 py-1 bg-tcc-border/20 text-[10px] font-bold tracking-widest text-tcc-hi border-r border-tcc-border/30 uppercase">Project Filter</div>
+      <div class="pj-tab active">ALL UNITS</div>
+      <div class="pj-tab">SCREENAP DEV</div>
+      <div class="pj-tab">REPORTS SYSTEM</div>
+      <div class="ml-auto px-4 text-[10px] text-tcc-hi font-bold italic animate-pulse">>> LIVE OPERATION DATA</div>
+    </div>
+
+    <!-- ALERT BANNER -->
+    <div class="flex-none flex items-center gap-4 border border-tcc-critical bg-tcc-critical/10 px-4 py-2 relative overflow-hidden">
+        <div class="absolute left-0 top-0 bottom-0 w-1 bg-tcc-critical"></div>
+        <span class="bg-tcc-critical text-white px-3 py-0.5 text-[11px] font-bold tracking-widest">⚠ SYSTEM ALERT</span>
+        <span class="text-tcc-critical text-[11px] font-bold tracking-[0.2em] uppercase glow-red flex-grow">
+           Critical Deadlines detected for [ SCREENAP DEV ] // 2 targets overdue
+        </span>
+    </div>
+
+    <!-- TOP ROW: 3 COLUMNS -->
+    <div class="flex-none flex gap-4 h-[25%] min-h-[160px]">
+      <!-- DAILY ITINERARY -->
+      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden bg-tcc-panel/20">
+        <p class="text-[11px] text-tcc-hi tracking-widest border-b border-tcc-border/30 pb-0.5 mb-2 flex justify-between items-center font-bold">
+          <span>ITINERARY</span><span class="text-[9px] opacity-50">G-CAL: SYNCED</span>
+        </p>
+        <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 space-y-1.5 text-[12px]">
+          <div class="flex gap-2 items-center text-tcc-warn"><span class="w-12 opacity-60">10:00</span><span class="bg-tcc-warn/10 px-2 flex-grow truncate py-0.5 border-l border-tcc-warn/40">WEEKLY MTG</span></div>
+          <div class="flex gap-2 items-center text-tcc-hi"><span class="w-12 opacity-60">13:00</span><span class="bg-tcc-hi/5 px-2 flex-grow truncate py-0.5 border-l border-tcc-hi/40">DEV: REFACTORING</span></div>
+          <div class="flex gap-2 items-center text-tcc-hi"><span class="w-12 opacity-60">15:30</span><span class="bg-tcc-hi/5 px-2 flex-grow truncate py-0.5 border-l border-tcc-hi/40">UI DESIGN SESS.</span></div>
+        </div>
+      </div>
+      <!-- DATALINK FEED -->
+      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden bg-tcc-panel/20 border-tcc-border/50">
+        <p class="text-[11px] text-tcc-hi tracking-widest border-b border-tcc-border/30 pb-0.5 mb-2 font-bold">DATALINK FEED</p>
+        <div class="flex-grow overflow-y-auto custom-scrollbar text-[11px] space-y-2">
+          <div class="text-tcc-hi truncate border-l-2 border-tcc-hi/40 pl-2 bg-tcc-hi/5 py-0.5">19:55 [ tcc_ui.md ] Update</div>
+          <div class="text-tcc-text truncate border-l-2 border-transparent pl-2 opacity-70">18:30 [ report_gen.md ] Update</div>
+          <div class="text-tcc-text truncate border-l-2 border-transparent pl-2 opacity-70">15:12 [ test_plan.md ] Create</div>
+        </div>
+      </div>
+      <!-- OPERATIONAL INTEL (Restored Extension Slot) -->
+      <div class="bracket-box p-4 flex flex-col flex-1 overflow-hidden bg-tcc-panel/20">
+        <p class="text-[11px] text-tcc-hi tracking-widest border-b border-tcc-border/30 pb-0.5 mb-2 font-bold">OPERATIONAL INTEL</p>
+        <div class="flex-grow flex flex-col justify-center gap-3">
+          <div class="flex justify-between text-[12px]"><span class="opacity-70">ACTIVE TARGETS</span><span class="text-tcc-hi font-bold">12</span></div>
+          <div class="flex justify-between text-[12px]"><span class="opacity-70">SUCCESS RATE</span><span class="text-green-400 font-bold">74%</span></div>
+          <div class="flex-grow flex items-center justify-center border border-tcc-border/10 bg-black/30 italic text-[11px] text-tcc-text/40">
+            [ MCP EXTENSION SLOT ]
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW: BOARD vs TIMELINE -->
+    <div class="flex-grow flex gap-4 min-h-0">
+      
+      <!-- LEFT: TASK BOARD -->
+      <div class="flex-[3] bracket-box p-4 flex flex-col overflow-hidden bg-tcc-panel/10">
+        <div class="flex justify-between items-center border-b border-tcc-border/30 pb-1 mb-4">
+           <p class="text-[11px] text-tcc-hi tracking-widest uppercase font-bold">Task Strategic Board</p>
+           <a href="wireframe-tasks.html" class="text-[10px] text-tcc-hi/70 hover:text-tcc-hi underline transition-colors cursor-pointer">FULL BOARD ▶</a>
+        </div>
+        <div class="flex-grow flex flex-row overflow-x-auto custom-scrollbar gap-4 pb-1">
+          <!-- TODO -->
+          <div class="flex flex-col min-w-[200px] flex-1">
+            <div class="text-[11px] font-bold text-gray-500 border-b border-gray-600/30 mb-3 px-2 flex justify-between"><span>TODO</span><span>(4)</span></div>
+            <div class="flex-grow overflow-y-auto custom-scrollbar pr-1">
+              <div class="task-card"><div class="text-[12px] text-white">Refactor IPC</div></div>
+            </div>
+          </div>
+          <!-- ENGAGED -->
+          <div class="flex flex-col min-w-[220px] flex-1 bg-tcc-hi/5 border-x border-tcc-hi/10 px-1">
+            <div class="text-[11px] font-bold text-tcc-hi border-b border-tcc-hi/30 mb-3 px-2 flex justify-between"><span>ENGAGED</span><span>(2)</span></div>
+            <div class="flex-grow overflow-y-auto custom-scrollbar pr-1">
+              <div class="task-card border-tcc-hi/40">
+                <div class="flex justify-between items-center mb-1.5"><span class="text-[10px] font-bold text-tcc-hi">#PJ-101</span><span class="badge-high tag">HIGH</span></div>
+                <div class="text-[12px] text-white font-bold leading-snug">UI REDESIGN DASHBOARD</div>
+                <div class="mt-3 space-y-1.5">
+                  <div class="flex justify-between text-[10px] text-tcc-hi/80"><span>SUB-ISSUE PROGRESS</span><span>3 / 5</span></div>
+                  <div class="w-full bg-tcc-dim h-1.5 flex"><div class="bg-tcc-hi h-full glow-blue" style="width: 60%"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- COMPLETED -->
+          <div class="flex flex-col min-w-[200px] flex-1">
+            <div class="text-[11px] font-bold text-green-500/70 border-b border-green-900/30 mb-3 px-2 flex justify-between"><span>COMPLETED</span><span>(12)</span></div>
+            <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 opacity-60">
+               <div class="task-card"><div class="text-[11px]">Sync protocol v1.4</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: TACTICAL TIMELINE (Restored Gantt) -->
+      <div class="flex-[2] bracket-box p-4 flex flex-col overflow-hidden bg-tcc-panel/10">
+        <div class="flex justify-between items-center border-b border-tcc-border/30 pb-1 mb-4">
+          <p class="text-[11px] text-tcc-hi tracking-widest uppercase font-bold">Tactical Timeline</p>
+          <div class="flex gap-3 text-[10px] text-tcc-text/70">
+            <span>◀ MAR 30</span><span>APR 12 ▶</span>
+          </div>
+        </div>
+        <div class="flex-grow overflow-hidden flex flex-col text-[10px]">
+          <div class="flex border-b border-tcc-border/20 mb-2 font-bold text-tcc-text/60">
+            <div class="w-24 border-r border-tcc-border/20 px-1">TARGET</div>
+            <div class="flex-grow grid grid-cols-7 text-center">
+              <div>M</div><div>T</div><div>W</div><div class="text-tcc-hi glow-blue bg-tcc-hi/10">T</div><div>F</div><div class="opacity-30">S</div><div class="opacity-30">S</div>
+            </div>
+          </div>
+          <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 space-y-3 mt-1">
+            <div class="flex items-center group">
+              <div class="w-24 truncate pr-2 group-hover:text-tcc-hi transition-colors font-bold">UI REDESIGN</div>
+              <div class="flex-grow grid grid-cols-7 h-5 relative">
+                <div class="col-start-3 col-end-7 bg-tcc-hi shadow-[0_0_10px_rgba(186,230,253,0.3)] border-r border-tcc-hi"></div>
+              </div>
+            </div>
+            <div class="flex items-center group">
+              <div class="w-24 truncate pr-2 font-bold opacity-80">REPORT LOGIC</div>
+              <div class="flex-grow grid grid-cols-7 h-5 relative">
+                <div class="col-start-1 col-end-5 bg-tcc-warn/60 border-r border-tcc-warn"></div>
+              </div>
+            </div>
+            <div class="flex items-center group opacity-40">
+              <div class="w-24 truncate pr-2">FS-SYNC</div>
+              <div class="flex-grow grid grid-cols-7 h-5 relative">
+                <div class="col-start-4 col-end-6 bg-green-500/80"></div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-auto pt-4 flex gap-4 text-[9px] justify-center opacity-70 tracking-widest border-t border-tcc-border/10">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-2 bg-tcc-hi shadow-[0_0_4px_#38bdf8]"></span> ACTIVE</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-2 bg-tcc-warn shadow-[0_0_4px_#f59e0b]"></span> RISK</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-2 bg-green-500 shadow-[0_0_4px_#22c55e]"></span> DONE</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- FOOTER (Restored full metrics) -->
+<footer class="flex-none flex items-center px-8 py-2.5 border-t border-tcc-border bg-tcc-panel/40 text-[10px] tracking-widest text-tcc-text">
+  <div class="flex items-center gap-3">
+    <span>SYSTEM: <span class="text-tcc-hi font-bold">ONLINE</span></span>
+    <span class="opacity-30">|</span>
+    <span>G-SYNC: <span class="text-green-400 font-bold">OK</span></span>
+    <span class="opacity-30">|</span>
+    <span>CALENDAR: <span class="text-tcc-warn font-bold">READY</span></span>
+    <span class="opacity-30">|</span>
+    <span>DB: <span class="text-tcc-hi">LOCAL-FS</span></span>
+  </div>
+  <div class="flex-grow text-center text-tcc-hi font-bold glow-blue text-[12px]">
+     TACTICAL DATA LINK // CONNECTION STABLE 1.5.0
+  </div>
+  <div class="flex items-center gap-3">
+    <span id="f-clock">12:34:56 UTC</span>
+    <span class="opacity-30">|</span>
+    <span class="opacity-60 font-mono text-[9px]">CPU: 12%</span>
+    <span class="opacity-30">|</span>
+    <span class="opacity-60 font-mono text-[9px]">MEM: 450MB</span>
+    <span class="opacity-30">|</span>
+    <span class="opacity-60 font-mono text-[9px] bg-tcc-border/20 px-1 border border-tcc-border/40">NODE V20</span>
+  </div>
+</footer>
+
+<script>
+function tick() {
+  const now = new Date(); const pad = n => n.toString().padStart(2,'0')
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+  if(document.getElementById('hdate')) document.getElementById('hdate').textContent = `${months[now.getMonth()]} ${pad(now.getDate())} ${now.getFullYear()}`
+  if(document.getElementById('htime')) document.getElementById('htime').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`
+  if(document.getElementById('f-clock')) document.getElementById('f-clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} LMT`
+}
+setInterval(tick, 1000); tick()
+</script>
+</body>
+</html>

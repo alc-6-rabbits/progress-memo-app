@@ -1,727 +1,559 @@
 <template>
-  <div class="p-8 h-full glass-panel relative flex flex-col overflow-hidden font-mono">
-    <div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-ace-highlight m-4 opacity-50"></div>
-    <div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-ace-highlight m-4 opacity-50"></div>
+  <div class="h-full w-full flex flex-row overflow-hidden relative font-mono">
+    
+    <!-- Reports List Sidebar -->
+    <aside class="w-80 flex-none border-r border-tcc-border/20 bg-tcc-panel/15 backdrop-blur-sm flex flex-col h-full overflow-hidden">
+       <div class="p-4 border-b border-tcc-border/20 text-[10px] tracking-widest opacity-60 uppercase font-bold flex justify-between items-center">
+         <span>Generated Reports</span>
+         <button @click="refresh" class="hover:text-tcc-hi transition-colors" title="Refresh">↻</button>
+       </div>
+       <div v-if="pending" class="px-4 py-8 text-center text-xs text-tcc-hi animate-pulse tracking-widest">
+         SCANNING...
+       </div>
+       <div v-else class="flex-grow overflow-y-auto custom-scrollbar">
+         <template v-for="(group, monthName) in groupedReports" :key="monthName">
+            <div class="mt-2 text-[10px] font-bold text-tcc-text opacity-50 px-4 py-1.5 uppercase bg-tcc-bg border-y border-tcc-border/10 tracking-widest">
+              [ {{ monthName }} ]
+            </div>
+            <div v-for="report in group" :key="report._file"
+                 @click="selectReport(report)"
+                 class="task-item" 
+                 :class="{ 'active': activeReport && activeReport._file === report._file }">
+               <div class="flex-grow min-w-0">
+                  <div class="text-[12px] truncate" :class="activeReport && activeReport._file === report._file ? 'text-white font-bold' : 'text-tcc-text'">
+                    {{ extractTitle(report) }}
+                  </div>
+                  <div class="flex gap-2 mt-1">
+                    <span class="text-[10px] opacity-70">{{ formatDateShort(report.created_at) }}</span>
+                    <!-- SENT: G-Chat transmitted (Green) -->
+                    <span v-if="report.gchat_sent"
+                          class="tag text-[8px] font-bold bg-green-500/20 text-green-400 border-green-500/50">SENT</span>
+                    <!-- SAVED: Weekly/Saved (Sky Blue) -->
+                    <span v-else-if="report.report_status === 'saved'"
+                          class="tag text-[8px] font-bold bg-sky-500/20 text-sky-300 border-sky-400/50">SAVED</span>
+                    <!-- DRAFT: Unsaved (Amber) -->
+                    <span v-else
+                          class="tag text-[8px] font-bold bg-amber-500/20 text-amber-400 border-amber-500/50">DRAFT</span>
+                  </div>
+               </div>
+            </div>
+         </template>
+         <div v-if="allReports.length === 0" class="text-center p-6 text-xs text-tcc-text opacity-50">NO REPORTS FOUND</div>
+       </div>
+    </aside>
 
-    <div class="flex justify-between items-center mb-6 border-b border-white/20 pb-4 shrink-0">
-      <h1 class="text-2xl font-mono tracking-widest text-ace-title drop-shadow-title">>> COMMUNICATION UPLINK</h1>
-      <NuxtLink to="/" class="text-ace-text hover:text-ace-highlight font-mono tracking-widest text-sm">[ CANCEL &amp; RTB ]</NuxtLink>
+    <!-- TRADITIONAL REPORT EDITOR -->
+    <div class="flex-grow flex flex-col h-full overflow-hidden bg-tcc-bg/40 relative">
+       
+       <div v-if="!activeReport && !isCreating" class="flex-grow flex items-center justify-center text-tcc-text opacity-30 text-xs tracking-widest flex-col gap-4">
+         <span>>> SELECT OR GENERATE REPORT</span>
+         <div class="flex gap-4 opacity-100">
+            <button @click="createReport('daily')" class="btn border-tcc-border text-tcc-text hover:text-white px-4 hover:border-tcc-hi transition-colors">+ NEW DAILY</button>
+            <button @click="createReport('weekly')" class="btn border-tcc-border text-tcc-text hover:text-white px-4 hover:border-tcc-hi transition-colors">+ NEW WEEKLY</button>
+         </div>
+       </div>
+
+       <template v-else>
+         <!-- Header -->
+         <div class="flex-none p-6 border-b border-tcc-border/20 bg-tcc-panel/40 backdrop-blur-md flex justify-between items-center">
+            <div class="flex-grow min-w-0 pr-4">
+               <h1 class="text-xl text-tcc-hi font-bold glow-blue tracking-wider truncate">
+                 <template v-if="isCreating">GENERATING NEW REPORT...</template>
+                 <template v-else>{{ extractTitle(activeReport) }}</template>
+               </h1>
+               <div class="flex gap-4 mt-2 text-[10px] text-tcc-text uppercase tracking-widest">
+                 <span v-if="!isCreating && isDailyReport" class="flex items-center gap-1.5" :class="activeReport.gchat_sent ? 'text-green-400' : ''">
+                   <span v-if="!activeReport.gchat_sent" class="w-2 h-2 rounded-full bg-tcc-warn animate-pulse"></span>
+                   <span v-else class="w-2 h-2 rounded-full bg-green-500"></span> 
+                   G-CHAT: {{ activeReport.gchat_sent ? 'TRANSMITTED' : 'NOT SENT' }}
+                 </span>
+                 <!-- Weekly: SAVED status (blue) -->
+                 <span v-if="!isCreating && !isDailyReport && activeReport.report_status === 'saved'" class="flex items-center gap-1.5 text-sky-400">
+                   <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+                   STATUS: SAVED
+                 </span>
+                 <!-- Weekly: DRAFT status (amber) -->
+                 <span v-if="!isCreating && !isDailyReport && activeReport.report_status !== 'saved'" class="flex items-center gap-1.5 text-amber-400">
+                   <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                   STATUS: DRAFT
+                 </span>
+                 <span v-if="!isCreating && isDailyReport" class="opacity-30">|</span>
+                 <span v-if="!isCreating" class="truncate">GENERATED: {{ formatDateLong(activeReport.created_at) }}</span>
+               </div>
+            </div>
+            
+            <div class="flex gap-2 flex-none">
+               <button @click="createReport('daily')" class="btn border-tcc-border text-tcc-text hover:text-white px-3" :disabled="isFetchingActivity">+ DAILY</button>
+               <button @click="createReport('weekly')" class="btn border-tcc-border text-tcc-text hover:text-white px-3" :disabled="isFetchingActivity">+ WEEKLY</button>
+               <div class="w-px h-6 bg-tcc-border/40 mx-2 self-center"></div>
+               
+               <template v-if="!isCreating">
+                 <button v-if="!isEditing" class="btn btn-primary px-6" @click="toggleEdit">>> EDIT REPORT</button>
+                 <button v-if="isEditing" class="btn border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold px-6" @click="saveChanges" :disabled="isSaving">
+                   {{ isSaving ? 'SAVING...' : '[ SAVE ]' }}
+                 </button>
+                 <button v-if="isEditing && isDailyReport" class="btn border-tcc-warn text-tcc-warn hover:bg-tcc-warn hover:text-black font-bold px-6" :class="{'animate-pulse': !isSending}" @click="transmitToChat" :disabled="isSending || isSaving">
+                   {{ isSending ? 'TRANSMITTING...' : '[ TRANSMIT TO G-CHAT ]' }}
+                 </button>
+               </template>
+               <template v-else>
+                 <span class="text-tcc-warn text-xs border border-tcc-warn px-4 py-1.5 flex items-center font-bold tracking-widest animate-pulse">SYNTHESIZING...</span>
+               </template>
+            </div>
+         </div>
+
+         <!-- Content Area -->
+         <div class="flex-grow flex overflow-hidden relative">
+            
+            <!-- EDITOR PANEL -->
+            <div v-show="isEditing && !isCreating" class="w-1/2 flex-none border-r border-tcc-border/20 bg-black/30 flex flex-col" style="transition: all 0.3s; transform-origin: left">
+               <div class="flex-none bg-tcc-panel/40 backdrop-blur-sm px-4 py-2 border-b border-tcc-border/20 flex gap-1.5 overflow-x-auto items-center">
+                  <button @click="insertSyntax('**', '**')" class="toolbar-btn font-bold">B</button>
+                  <button @click="insertSyntax('_', '_')" class="toolbar-btn italic">I</button>
+                  <button @click="insertSyntax('~~', '~~')" class="toolbar-btn line-through">S</button>
+                  
+                  <template v-if="!isDailyReport">
+                      <div class="w-px h-6 bg-tcc-border/30 mx-1"></div>
+                      <select class="bg-black/40 border border-tcc-border/30 text-tcc-hi text-xs p-1 outline-none w-16 cursor-pointer" @change="(e) => { if(e.target.value !== 'H') { insertSyntax(e.target.value + ' ', ''); e.target.value='H'; } }">
+                          <option value="H" disabled selected>H</option>
+                          <option value="#">H1</option>
+                          <option value="##">H2</option>
+                          <option value="###">H3</option>
+                          <option value="####">H4</option>
+                      </select>
+                      <button @click="insertSyntax('- ', '')" class="toolbar-btn font-bold leading-none font-sans" title="Bullet List">●</button>
+                      <button @click="insertSyntax('- [ ] ', '')" class="toolbar-btn font-bold text-[10px] leading-none px-1" title="Checkbox">[ ]</button>
+                      <button @click="insertSyntax('\n---\n', '')" class="toolbar-btn font-bold leading-none px-1 text-[10px] tracking-tighter" title="Horizontal Rule">---</button>
+                      <button @click="insertSyntax('[', '](url)')" class="toolbar-btn font-bold leading-none text-[9px] px-1" title="Link">URL</button>
+                      <button @click="insertSyntax('```\n', '\n```')" class="toolbar-btn font-mono font-bold leading-none px-1" title="Code Block">{ }</button>
+                  </template>
+               </div>
+               <textarea ref="editorTextarea" v-model="editContent" class="editor-textarea custom-scrollbar border-0 flex-grow" placeholder="Report data..."></textarea>
+            </div>
+
+            <!-- PREVIEW PANEL -->
+            <div class="flex-grow p-8 overflow-y-auto custom-scrollbar bg-black/5 relative" :class="(!isEditing || isCreating) ? 'w-full' : 'w-1/2'">
+               <div class="max-w-3xl mx-auto space-y-8 pb-16">
+                  <!-- Main rendered markdown -->
+                  <div class="border border-tcc-border/20 p-8 bg-black/40 shadow-xl" v-html="previewHtml"></div>
+                  
+                  <!-- Google Chat Mockup -->
+                  <div v-if="isDailyReport" class="mt-8 border border-tcc-border/50 bg-[#1e2022] shadow-xl p-5 relative text-[#e8eaed] font-sans rounded-lg z-[10000]">
+                    <div class="absolute -top-3 left-4 bg-tcc-warn px-2 py-0.5 text-[9px] font-bold text-black tracking-widest uppercase rounded shadow">Google Chat Render Preview</div>
+                    <div class="flex gap-3">
+                      <div class="w-8 h-8 rounded-full bg-blue-600/30 border border-tcc-hi flex items-center justify-center text-tcc-hi font-bold text-xs flex-none shadow-sm">UPL</div>
+                      <div class="flex-grow">
+                        <div class="text-xs font-bold text-[#e8eaed] mb-1">TCC Uplink Bot <span class="font-normal text-[#9aa0a6] ml-2">Just now</span></div>
+                        <div class="text-[13px] text-[#e8eaed] break-words leading-relaxed whitespace-pre-wrap" v-html="gchatPreviewHtml"></div>
+                      </div>
+                    </div>
+                  </div>
+               </div>
+               
+               <!-- Messages Overlay -->
+               <div v-if="sysMsg" class="absolute bottom-4 left-1/2 -translate-x-1/2 border px-6 py-2 shadow-2xl tracking-widest font-bold text-xs bg-black/90 z-20" :class="sysMsgType === 'error' ? 'border-red-500 text-red-400' : 'border-tcc-hi text-tcc-hi'">
+                 {{ sysMsg }}
+               </div>
+            </div>
+         </div>
+       </template>
+
     </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-grow overflow-hidden">
-      <!-- Editor Column -->
-      <div class="border border-ace-border/30 p-6 bg-ace-bg/30 overflow-y-auto relative flex flex-col">
-        <h2 class="text-lg font-bold mb-4 tracking-widest text-ace-highlight flex items-center shrink-0">
-          <span class="w-2 h-4 bg-ace-highlight mr-2 inline-block"></span>MISSION DATA ENTRY
-        </h2>
-
-        <!-- 日付入力（既存を維持） -->
-        <div class="mb-4 shrink-0">
-          <label class="block text-xs font-bold text-ace-text tracking-widest mb-2">TARGET DATETIME</label>
-          <div class="relative">
-            <input
-              ref="pickerInput"
-              v-model="targetReportDate"
-              type="text"
-              placeholder="YYYY/MM/DD"
-              class="block w-full ace-input bg-ace-bg/50 p-2 border border-ace-border focus:border-ace-highlight focus:ring-1 focus:ring-ace-highlight transition-all text-white cursor-pointer select-none"
-            >
-            <span class="absolute right-3 top-2.5 opacity-50 pointer-events-none text-ace-highlight">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
-              </svg>
-            </span>
-          </div>
-        </div>
-
-        <!-- ツールバー -->
-        <div class="flex items-center space-x-1 mb-2 border-b border-ace-border/30 pb-2 shrink-0 flex-wrap gap-y-1">
-          <button @click="insertMarkdown('bold')" class="toolbar-btn" title="太字">B</button>
-          <button @click="insertMarkdown('italic')" class="toolbar-btn" title="斜体">I</button>
-          <button @click="insertMarkdown('strike')" class="toolbar-btn" title="取り消し線">S</button>
-          <span class="w-px h-4 bg-ace-border/30"></span>
-          <button @click="insertMarkdown('h1')" class="toolbar-btn" title="見出し1">H1</button>
-          <button @click="insertMarkdown('h2')" class="toolbar-btn" title="見出し2">H2</button>
-          <button @click="insertMarkdown('list')" class="toolbar-btn" title="リスト">•</button>
-          <button @click="insertMarkdown('code')" class="toolbar-btn" title="コード">&lt;&gt;</button>
-          <span class="w-px h-4 bg-ace-border/30"></span>
-          <button @click="insertDailyTemplate" class="toolbar-btn text-ace-warning" title="日報テンプレート挿入">📋 日報</button>
-          <button @click="insertWeeklyTemplate" class="toolbar-btn text-ace-warning" title="週報テンプレート挿入">📊 週報</button>
-        </div>
-
-        <!-- マークダウンエディタ -->
-        <textarea
-          ref="reportEditor"
-          v-model="reportContent"
-          @contextmenu.prevent="showContextMenu($event)"
-          class="flex-grow w-full bg-ace-bg/50 border border-ace-border/50 p-4 font-sans text-sm text-ace-highlight focus:outline-none focus:border-ace-highlight resize-none whitespace-pre-wrap overflow-auto"
-          spellcheck="false"
-          placeholder="マークダウンで日報を記述してください..."
-        ></textarea>
-      </div>
-
-      <!-- Preview Column -->
-      <div class="bg-[#050c14] border border-ace-border p-6 shadow flex flex-col relative overflow-hidden">
-        <!-- Scanlines effect for the display -->
-        <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%] z-0 rounded"></div>
-
-        <div class="flex items-end justify-between mb-4 border-b border-white/20 pb-0 relative z-10 w-full">
-          <div class="flex space-x-1 mt-1">
-            <!-- PREVIEW タブ -->
-            <button
-              @click="activeTab = 'preview'"
-              class="px-4 py-2 font-bold tracking-widest text-xs transition-colors border border-b-0 rounded-t-sm"
-              :class="activeTab === 'preview' ? 'bg-white text-black border-white' : 'bg-transparent text-ace-text border-transparent hover:bg-white/10'"
-            >
-              PREVIEW
-            </button>
-
-            <!-- GOOGLE CHAT モードタブ -->
-            <button
-              @click="activeTab = 'gchat'"
-              class="px-4 py-2 font-bold tracking-widest text-xs transition-colors border border-b-0 rounded-t-sm"
-              :class="activeTab === 'gchat' ? 'bg-green-500 text-black border-green-500' : 'bg-transparent text-ace-text border-transparent hover:bg-white/10'"
-            >
-              GOOGLE CHAT
-            </button>
-          </div>
-          <div class="flex space-x-2 pb-2">
-            <button @click="saveAsWeeklyReport" class="ace-button border-ace-text text-ace-text hover:bg-ace-highlight hover:text-black hover:border-ace-highlight" :disabled="isSavingReport">
-              {{ isSavingReport ? 'SAVING...' : 'SAVE WEEKLY >>' }}
-            </button>
-            <button @click="sendWebhook" class="ace-button ace-button-primary border-white text-white hover:bg-white hover:text-black" :disabled="isSending">
-              {{ isSending ? 'TRANSMITTING...' : 'INITIATE UPLINK >>' }}
-            </button>
-          </div>
-        </div>
-
-        <!-- PREVIEW タブ: レンダリング済みプレビュー -->
-        <div
-          v-if="activeTab === 'preview'"
-          class="flex-grow overflow-y-auto p-4 border border-ace-highlight/30 text-ace-text relative z-10 bg-black/50 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)] prose prose-invert max-w-none"
-          v-html="renderedReportHtml"
-        ></div>
-
-        <!-- GOOGLE CHAT タブ: Google Chat 風プレビュー -->
-        <div
-          v-else-if="activeTab === 'gchat'"
-          class="flex-grow overflow-y-auto relative z-10 gchat-preview"
-          v-html="googleChatPreviewHtml"
-        ></div>
-
-        <p v-if="successMsg" class="text-ace-highlight text-sm mt-4 font-bold tracking-widest relative z-10">{{ successMsg }}</p>
-        <p v-if="errorMsg" class="text-red-400 text-sm mt-4 font-bold tracking-widest relative z-10">{{ errorMsg }}</p>
-      </div>
-    </div>
-
-    <!-- カスタムコンテキストメニュー -->
-    <Teleport to="body">
-      <div
-        v-if="contextMenu.visible"
-        :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
-        class="fixed z-50 glass-panel border-ace-highlight/50 py-1 min-w-[220px] shadow-[0_0_20px_rgba(52,126,177,0.4)]"
-        @click.stop
-      >
-        <!-- プロジェクトを挿入 -->
-        <div class="relative group/menu">
-          <button class="ctx-menu-item w-full" @mouseenter="ctxSubmenu = 'project'">
-            📁 プロジェクトを挿入 ▸
-          </button>
-          <div
-            v-if="ctxSubmenu === 'project'"
-            class="absolute left-full top-0 glass-panel border-ace-highlight/50 py-1 min-w-[200px]"
-          >
-            <button
-              v-for="[id, proj] in Object.entries(projectsData.project)"
-              :key="id"
-              class="ctx-menu-item w-full"
-              @click="insertProjectHeader(proj.name)"
-            >
-              {{ proj.name }}
-            </button>
-            <p v-if="Object.keys(projectsData.project).length === 0" class="px-3 py-2 text-xxs text-ace-text">
-              No projects found.
-            </p>
-          </div>
-        </div>
-
-        <!-- タスクを挿入 -->
-        <div class="relative group/menu">
-          <button class="ctx-menu-item w-full" @mouseenter="ctxSubmenu = 'task'">
-            📌 タスクを挿入 ▸
-          </button>
-          <div
-            v-if="ctxSubmenu === 'task'"
-            class="absolute left-full top-0 glass-panel border-ace-highlight/50 py-1 min-w-[280px] max-h-60 overflow-y-auto"
-          >
-            <button
-              v-for="task in activeTasks"
-              :key="task._file"
-              class="ctx-menu-item w-full"
-              @click="insertTaskLine(task)"
-            >
-              <span class="text-ace-warning text-xxs">[{{ task.project_name }}]</span> {{ task.title }}
-            </button>
-            <p v-if="activeTasks.length === 0" class="px-3 py-2 text-xxs text-ace-text">
-              No active tasks found.
-            </p>
-          </div>
-        </div>
-
-        <hr class="border-ace-border/30 my-1" />
-
-        <!-- GitHub Activity 挿入 -->
-        <button 
-          class="ctx-menu-item w-full" 
-          :class="{ 'opacity-50 cursor-not-allowed': isFetchingActivity }"
-          :disabled="isFetchingActivity"
-          @click="insertGitHubActivity"
-        >
-          {{ isFetchingActivity ? '🔄 取得中...' : '🔄 GitHub Activity を挿入' }}
-        </button>
-      </div>
-    </Teleport>
   </div>
 </template>
 
-<style>
-/* flatpickr custom theme: Ace Combat 7 inspired Dark Blue */
-.flatpickr-calendar {
-  background: #071526 !important;
-  border: 1px solid #347eb1 !important;
-  box-shadow: 0 0 15px rgba(52, 126, 177, 0.4) !important;
-  color: #c3e6fd !important;
-  font-family: 'JetBrains Mono', 'Roboto Mono', monospace !important;
-}
-
-.flatpickr-calendar.arrowTop:after, .flatpickr-calendar.arrowTop:before {
-  border-bottom-color: #347eb1 !important;
-}
-
-.flatpickr-day {
-  color: #8cb4cf !important;
-}
-
-.flatpickr-day:hover, .flatpickr-day.prevMonthDay:hover, .flatpickr-day.nextMonthDay:hover {
-  background: rgba(52, 126, 177, 0.3) !important;
-  color: #fff !important;
-}
-
-.flatpickr-day.today {
-  border-color: #c98a2c !important;
-  color: #c98a2c !important;
-}
-
-.flatpickr-day.selected {
-  background: #347eb1 !important;
-  color: #fff !important;
-  border-color: #347eb1 !important;
-}
-
-.flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months, .flatpickr-current-month input.cur-year {
-  color: #c3e6fd !important;
-  fill: #c3e6fd !important;
-}
-
-.flatpickr-current-month .flatpickr-monthDropdown-month {
-  background: #071526 !important;
-}
-
-.flatpickr-weekday {
-  color: #347eb1 !important;
-}
-
-.flatpickr-months .flatpickr-prev-month:hover svg, .flatpickr-months .flatpickr-next-month:hover svg {
-  fill: #fff !important;
-}
-</style>
-
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
-import flatpickr from 'flatpickr'
-import 'flatpickr/dist/flatpickr.css'
-import { useProjects } from '~/composables/useProjects'
-import { useGoogleChatMd } from '~/composables/useGoogleChatMd'
-import { useGitHubREST } from '~/composables/useGitHubREST'
-
-// ─── 既存の状態管理 ───────────────────────────────────────────────
-const pickerInput = ref(null)
-const webhookUrl = ref('')
-const today = new Date()
-const targetReportDate = ref(`${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`)
-const isSending = ref(false)
-const isSavingReport = ref(false)
-const successMsg = ref('')
-const errorMsg = ref('')
-const isInitializing = ref(true)
-
-const activeTab = ref('preview')
-const allTasks = ref([])
-const activeTasks = ref([])
-
-// ─── composables ─────────────────────────────────────────────────
-const { projectsData, loadProjects } = useProjects()
-const { convertToGoogleChat, renderGoogleChatPreview } = useGoogleChatMd()
-const { postIssueComment, parseIssueUrl, fetchUserEvents, formatEventsAsMarkdown } = useGitHubREST()
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { marked } from 'marked'
+import { useGitHubREST } from '~/composables/useGitHubREST'
+import { useGoogleChatMd } from '~/composables/useGoogleChatMd'
 
+const pending = ref(true)
+const allReports = ref([])
+const activeReport = ref(null)
+const isEditing = ref(false)
+const isCreating = ref(false)
+const isSaving = ref(false)
+const isSending = ref(false)
 const isFetchingActivity = ref(false)
 
-// ─── レンダリング ────────────────────────────────────────────────
-const renderedReportHtml = computed(() => {
-  return marked.parse(reportContent.value || '')
+const isDailyReport = computed(() => {
+   if (!activeReport.value) return false
+   const t = activeReport.value.type || ''
+   if (t === 'daily') return true
+   if (activeReport.value._file && activeReport.value._file.includes('daily')) return true
+   return false
 })
 
-// ─── MDエディタ ───────────────────────────────────────────────────
-const reportEditor = ref(null)
-const reportContent = ref('')
+const editContent = ref('')
+const editorTextarea = ref(null)
 
-/**
- * ツールバーボタンによるマークダウン記法挿入
- * 太字は Google Chat 形式（*text*）を使用する
- */
-const insertMarkdown = (type) => {
-  const editor = reportEditor.value
-  if (!editor) return
+const sysMsg = ref('')
+const sysMsgType = ref('success') // success, error
 
-  const start = editor.selectionStart
-  const end = editor.selectionEnd
-  const selected = reportContent.value.substring(start, end)
+const { fetchUserEvents, formatEventsAsMarkdown, postIssueComment, parseIssueUrl } = useGitHubREST()
+const { convertToGoogleChat, renderGoogleChatPreview } = useGoogleChatMd()
 
-  let before = '', after = ''
-  switch (type) {
-    case 'bold':   before = '*';  after = '*';  break  // Google Chat形式
-    case 'italic': before = '_';  after = '_';  break
-    case 'strike': before = '~';  after = '~';  break
-    case 'h1':     before = '# ';               break
-    case 'h2':     before = '## ';              break
-    case 'list':   before = '- ';               break
-    case 'code':   before = '`';  after = '`';  break
-  }
-
-  const insert = before + (selected || 'テキスト') + after
-  reportContent.value =
-    reportContent.value.substring(0, start) + insert + reportContent.value.substring(end)
-
-  // カーソル位置を挿入後の末尾に移動
-  nextTick(() => {
-    editor.focus()
-    const newPos = start + before.length + (selected || 'テキスト').length
-    editor.setSelectionRange(newPos, newPos)
-  })
-}
-
-/**
- * 日報用：指定日のタスク取得
- */
-const getTasksByDate = (dateStr) => {
-  const target = new Date(dateStr)
-  target.setHours(0,0,0,0)
-  const next = new Date(target)
-  next.setDate(target.getDate() + 1)
-
-  return allTasks.value.filter(t => {
-    if (!t.updated_at) return false
-    const updated = new Date(t.updated_at)
-    return updated >= target && updated < next
-  })
-}
-
-/**
- * 週報用：期間内のタスク取得
- */
-const getTasksByRange = (start, end) => {
-  const s = new Date(start)
-  s.setHours(0,0,0,0)
-  const e = new Date(end)
-  e.setHours(23,59,59,999)
-
-  return allTasks.value.filter(t => {
-    if (!t.updated_at) return false
-    const updated = new Date(t.updated_at)
-    return updated >= s && updated <= e
-  })
-}
-
-/**
- * 日報テンプレートをカーソル位置に挿入する
- */
-const insertDailyTemplate = async () => {
-  isFetchingActivity.value = true
+const refresh = async () => {
+  pending.value = true
   try {
-    const dateStr = targetReportDate.value.replace(/-/g, '/')
-    
-    // GitHub履歴の取得
-    const events = await fetchUserEvents(dateStr)
-    const githubMd = formatEventsAsMarkdown(events)
-
-    // ローカルタスクの取得
-    const dailyTasks = getTasksByDate(dateStr)
-    const tasksMd = dailyTasks.length > 0 
-      ? dailyTasks.map(t => `- [${t.project_name}] ${t.title}`).join('\n')
-      : '（記録されたタスク更新はありません）'
-
-    const template = `【日報　${dateStr}】\n\n## 1. 本日の実績\n### [GitHub Activity]\n${githubMd}\n\n### [Local Tasks]\n${tasksMd}\n\n## 2. 明日の予定\n\n以上です。`
-
-    const editor = reportEditor.value
-    if (!editor) return
-
-    const pos = editor.selectionStart
-    reportContent.value =
-      reportContent.value.substring(0, pos) + template + reportContent.value.substring(pos)
-
-    nextTick(() => {
-      editor.focus()
-      const newPos = pos + template.indexOf('## 2. 明日の予定\n') + '## 2. 明日の予定\n'.length
-      editor.setSelectionRange(newPos, newPos)
-    })
+    if (window.electronAPI && window.electronAPI.getAllReports) {
+      const data = await window.electronAPI.getAllReports()
+      allReports.value = data
+      if (activeReport.value) {
+         const updated = data.find(r => r._file === activeReport.value._file)
+         if (updated) {
+            activeReport.value = updated
+         }
+      } else if (data.length > 0) {
+         selectReport(data[0])
+      }
+    }
   } catch (e) {
-    errorMsg.value = `Failed to generate daily report: ${e.message}`
+    console.error('Failed to get reports', e)
   } finally {
-    isFetchingActivity.value = false
+    pending.value = false
   }
 }
 
-/**
- * 週報テンプレートをカーソル位置に挿入する（月〜金の週範囲を自動計算）
- */
-const insertWeeklyTemplate = async () => {
-  isFetchingActivity.value = true
-  try {
-    const now = new Date(targetReportDate.value)
-    const monday = new Date(now)
-    monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1))
-    const friday = new Date(monday)
-    friday.setDate(monday.getDate() + 4)
-
-    const format = (d) =>
-      `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-
-    const startStr = format(monday)
-    const endStr = format(friday)
-
-    // GitHub履歴の取得
-    const events = await fetchUserEvents(startStr, endStr)
-    const githubMd = formatEventsAsMarkdown(events)
-
-    // ローカルタスクの取得
-    const weeklyTasks = getTasksByRange(startStr, endStr)
-    const tasksMd = weeklyTasks.length > 0 
-      ? weeklyTasks.map(t => `- [${t.project_name}] ${t.title} (${t.status})`).join('\n')
-      : '（記録されたタスク更新はありません）'
-
-    const template = `# 週報 (${startStr} 〜 ${endStr})\n\n## 1. 今週の実績\n### [GitHub Activity]\n${githubMd}\n\n### [Local Tasks]\n${tasksMd}\n\n## 2. 来週の予定\n${activeTasks.value.map(t => `- [${t.project_name}] ${t.title}`).join('\n')}\n\n## 3. 特記事項 / 定例メモ\n\n以上です。`
-
-    const editor = reportEditor.value
-    if (!editor) return
-    const pos = editor.selectionStart
-    reportContent.value =
-      reportContent.value.substring(0, pos) + template + reportContent.value.substring(pos)
-
-    nextTick(() => {
-      editor.focus()
-      const newPos = pos + template.indexOf('## 3. 特記事項 / 定例メモ\n') + '## 3. 特記事項 / 定例メモ\n'.length
-      editor.setSelectionRange(newPos, newPos)
-    })
-  } catch (e) {
-    errorMsg.value = `Failed to generate weekly report: ${e.message}`
-  } finally {
-    isFetchingActivity.value = false
-  }
-}
-
-// ─── Google Chat プレビュー ────────────────────────────────────────
-/**
- * Google Chat 形式に変換した HTML プレビュー
- * v-html で gchat-preview コンテナ内に描画される
- */
-const googleChatPreviewHtml = computed(() => {
-  return renderGoogleChatPreview(reportContent.value)
+onMounted(() => {
+  refresh()
 })
 
-// ─── コンテキストメニュー ─────────────────────────────────────────
-const contextMenu = ref({ visible: false, x: 0, y: 0 })
-const ctxSubmenu = ref('')
-
-const showContextMenu = (event) => {
-  contextMenu.value = {
-    visible: true,
-    x: event.clientX,
-    y: event.clientY
-  }
-  ctxSubmenu.value = ''
+const showMessage = (msg, type = 'success') => {
+  sysMsg.value = msg
+  sysMsgType.value = type
+  setTimeout(() => sysMsg.value = '', 4000)
 }
 
-/**
- * プロジェクト名をヘッダー形式でカーソル位置に挿入する
- */
-const insertProjectHeader = (projectName) => {
-  const editor = reportEditor.value
-  if (!editor) return
+const selectReport = (report) => {
+  if (isEditing.value) {
+     if(!confirm('Unsaved changes will be lost. Switch report?')) return
+  }
+  activeReport.value = report
+  isEditing.value = false
+  editContent.value = report.content || ''
+}
 
-  const pos = editor.selectionStart
-  const insert = `*【${projectName}】*\n`
+const toggleEdit = () => {
+  isEditing.value = !isEditing.value
+  if (!isEditing.value) {
+    // Reset to saved content on cancel
+    editContent.value = activeReport.value.content
+  }
+}
 
-  reportContent.value =
-    reportContent.value.substring(0, pos) + insert + reportContent.value.substring(pos)
+// ----- formatting/helpers -----
 
-  contextMenu.value.visible = false
-  nextTick(() => {
-    editor.focus()
-    const newPos = pos + insert.length
-    editor.setSelectionRange(newPos, newPos)
+const groupedReports = computed(() => {
+  const groups = {}
+  allReports.value.forEach(r => {
+     const date = new Date(r.created_at)
+     const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`
+     if(!groups[key]) groups[key] = []
+     groups[key].push(r)
   })
+  return groups
+})
+
+// Helper: 3-state status label for the sidebar
+const getStatusLabel = (report) => {
+  if (report.gchat_sent) return 'SENT'
+  if (report.report_status === 'saved') return 'SAVED'
+  return 'DRAFT'
 }
 
-/**
- * タスク名をリスト形式でカーソル位置に挿入する
- */
-const insertTaskLine = (task) => {
-  const editor = reportEditor.value
-  if (!editor) return
-
-  const pos = editor.selectionStart
-  const insert = `- ${task.title}\n`
-
-  reportContent.value =
-    reportContent.value.substring(0, pos) + insert + reportContent.value.substring(pos)
-
-  contextMenu.value.visible = false
-  nextTick(() => {
-    editor.focus()
-    const newPos = pos + insert.length
-    editor.setSelectionRange(newPos, newPos)
-  })
+const getStatusBadgeClass = (report) => {
+  if (report.gchat_sent) return 'bg-green-500/10 text-green-400 border-green-500'
+  if (report.report_status === 'saved') return 'bg-tcc-hi/10 text-tcc-hi border-tcc-hi'
+  return 'bg-tcc-warn/10 text-tcc-warn border-tcc-warn'
 }
 
-/**
- * GitHub Activity を取得してエディタのカーソル位置に挿入する
- */
-const insertGitHubActivity = async () => {
-  const editor = reportEditor.value
-  if (!editor) return
+const formatDateShort = (isoString) => {
+  if(!isoString) return ''
+  const d = new Date(isoString)
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`
+}
 
-  isFetchingActivity.value = true
-  contextMenu.value.visible = false
+const formatDateLong = (isoString) => {
+  if(!isoString) return ''
+  const d = new Date(isoString)
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+}
 
-  try {
-    // targetReportDate をベースに当日のイベントを取得
-    const since = targetReportDate.value || new Date().toISOString().split('T')[0]
-    const events = await fetchUserEvents(since)
-    const markdown = formatEventsAsMarkdown(events)
-
-    // カーソル位置に挿入
-    const pos = editor.selectionStart
-    reportContent.value =
-      reportContent.value.substring(0, pos) + markdown + '\n' + reportContent.value.substring(pos)
-
-    nextTick(() => {
-      editor.focus()
-      const newPos = pos + markdown.length + 1
-      editor.setSelectionRange(newPos, newPos)
-    })
-  } catch (e) {
-    console.error('[Report] Failed to fetch GitHub activity:', e)
-    errorMsg.value = `GitHub Activity fetch failed: ${e.message}`
-  } finally {
-    isFetchingActivity.value = false
+const extractTitle = (report) => {
+  if(!report) return ''
+  if(report.title) return report.title
+  
+  // Try to find first H1 or H2
+  const match = (report.content || '').match(/^#+\s+(.*)$/m)
+  if(match && match[1]) {
+     return match[1].trim()
   }
+  return report._file || 'Untitled Report'
 }
 
-// ─── Webhook 送信 ─────────────────────────────────────────────────
-const sendWebhook = async () => {
-  if (!webhookUrl.value) {
-    errorMsg.value = 'Please provide a Webhook URL.'
-    return
-  }
+const previewHtml = computed(() => {
+   const raw = isEditing.value ? editContent.value : (activeReport.value ? activeReport.value.content : '')
+   if (!raw) return '<p class="opacity-30 italic text-sm">No tactical data...</p>'
+   
+   let html = marked(raw)
+   // Hacky way to inject tailwind classes
+   html = html.replace(/<h1(.*?)>/g, '<h1 class="text-2xl text-tcc-hi font-bold tracking-widest mb-6 border-b border-tcc-hi/20 pb-2">')
+   html = html.replace(/<h2(.*?)>/g, '<section class="border-l-4 border-tcc-border/40 pl-6 border-b border-tcc-border/10 pb-6 my-6"><h2 class="text-tcc-text text-lg font-bold tracking-widest mb-4">')
+   html = html.replace(/<\/h2>/g, '</h2></section>') 
+   html = html.replace(/<h3(.*?)>/g, '<h3 class="text-white text-md font-bold text-white mt-6 mb-2 flex items-center gap-2">')
+   
+   html = html.replace(/<ul>/g, '<ul class="space-y-1 text-sm pl-4 mb-4 text-tcc-text">')
+   html = html.replace(/<li>/g, '<li class="flex items-start gap-2 relative pl-3 before:content-[\'•\'] before:absolute before:left-0 before:text-tcc-border">')
+   
+   return html.replace(/<\/li>/g, '</li>')
+})
 
-  isSending.value = true
-  successMsg.value = ''
-  errorMsg.value = ''
+const gchatPreviewHtml = computed(() => {
+   const raw = isEditing.value ? editContent.value : (activeReport.value ? activeReport.value.content : '')
+   if (!raw) return '...'
+   return renderGoogleChatPreview(raw)
+})
 
-  try {
-    // Google Chat 形式に変換して送信
-    const payload = convertToGoogleChat(reportContent.value)
+const insertSyntax = (start, end) => {
+  if (!editorTextarea.value) return
+  const el = editorTextarea.value
+  const selStart = el.selectionStart
+  const selEnd = el.selectionEnd
+  const text = editContent.value
+  
+  const before = text.substring(0, selStart)
+  const selected = text.substring(selStart, selEnd)
+  const after = text.substring(selEnd)
+  
+  editContent.value = before + start + selected + end + after
+  
+  setTimeout(() => {
+    el.focus()
+    el.setSelectionRange(selStart + start.length, selStart + start.length + selected.length)
+  }, 0)
+}
 
-    const response = await fetch(webhookUrl.value, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: payload })
-    })
+// ----- API Logic -----
 
-    if (response.ok) {
-      successMsg.value = 'Report sent to Google Chat successfully!'
+const getLocalTasks = async () => {
+   if (window.electronAPI && window.electronAPI.getAllMarkdowns) {
+      return await window.electronAPI.getAllMarkdowns()
+   }
+   return []
+}
+
+const createReport = async (type) => {
+   if(isEditing.value) {
+      if(!confirm('Discard unsaved edits to generate new report?')) return
+   }
+   isCreating.value = true
+   isFetchingActivity.value = true
+   
+   try {
+      const now = new Date()
+      const format = (d) => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`
       
-      // Issue 自動コメント (FR-007)
-      const autoComment = localStorage.getItem('autoCommentOnIssue') === 'true'
-      if (autoComment && activeTasks.value.length > 0) {
-        await postIssueComments()
+      let title, template, startStr, endStr
+      
+      const allLocalTasks = await getLocalTasks()
+      const activeTasks = allLocalTasks.filter(t => t.status === 'in-progress' || t.status === 'inProgress' || t.status === 'engaged' || !t.status || t.status === 'todo')
+      
+      if(type === 'daily') {
+         startStr = format(now)
+         endStr = startStr
+         title = `DAILY REPORT: ${startStr}`
+         
+         const events = await fetchUserEvents(startStr)
+         const githubMd = formatEventsAsMarkdown(events)
+         
+         const s = new Date(startStr); s.setHours(0,0,0,0)
+         const e = new Date(); e.setHours(23,59,59,999)
+         const dailyTasks = allLocalTasks.filter(t => t.updated_at && (new Date(t.updated_at) >= s && new Date(t.updated_at) <= e))
+         
+         const tasksMd = dailyTasks.length > 0 
+            ? dailyTasks.map(t => `- [${t.project_name || 'UNCLASSIFIED'}] ${t.title}`).join('\n')
+            : '（記録されたタスク更新はありません）'
+         
+         template = `# ${title}\n\n## 1. 本日の実績\n### [GitHub Activity]\n${githubMd}\n\n### [Local Tasks]\n${tasksMd}\n\n## 2. 明日の予定\n${activeTasks.slice(0, 5).map(t => `- [${t.project_name || '?'}] ${t.title}`).join('\n')}\n\n以上です。`
+         
+      } else {
+         const m = new Date(now)
+         m.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1))
+         const f = new Date(m)
+         f.setDate(m.getDate() + 4)
+         
+         startStr = format(m)
+         endStr = format(f)
+         title = `WEEKLY REPORT: ${startStr}-${endStr}`
+         
+         const events = await fetchUserEvents(startStr, endStr)
+         const githubMd = formatEventsAsMarkdown(events)
+         
+         const s = new Date(m); s.setHours(0,0,0,0)
+         const e = new Date(f); e.setHours(23,59,59,999)
+         const weeklyTasks = allLocalTasks.filter(t => t.updated_at && (new Date(t.updated_at) >= s && new Date(t.updated_at) <= e))
+         
+         const tasksMd = weeklyTasks.length > 0 
+            ? weeklyTasks.map(t => `- [${t.project_name || '?'}] ${t.title} (${t.status})`).join('\n')
+            : '（記録されたタスク更新はありません）'
+         
+         template = `# ${title}\n\n## 1. 今週の実績\n### [GitHub Activity]\n${githubMd}\n\n### [Local Tasks]\n${tasksMd}\n\n## 2. 来週の予定\n${activeTasks.slice(0, 5).map(t => `- [${t.project_name || '?'}] ${t.title}`).join('\n')}\n\n## 3. 特記事項 / 定例メモ\n\n以上です。`
       }
-    } else {
-      errorMsg.value = `Failed to send: ${response.statusText}`
-    }
-  } catch (err) {
-    errorMsg.value = err.message
-  } finally {
-    isSending.value = false
-  }
+      
+      const newFilestr = `${type}-report-${now.toISOString().split('T')[0]}.md`
+      
+      const newRep = {
+         _file: newFilestr,
+         title: title,
+         type: type,
+         gchat_sent: false,
+         created_at: now.toISOString(),
+         updated_at: now.toISOString(),
+         content: template
+      }
+      
+      activeReport.value = newRep
+      editContent.value = template
+      isEditing.value = true
+      
+   } catch (e) {
+      console.error(e)
+      showMessage(`Synthesis failed: ${e.message}`, 'error')
+   } finally {
+      isCreating.value = false
+      isFetchingActivity.value = false
+   }
 }
 
-/**
- * 日報送信後に、関連する GitHub Issue に進捗コメントを投稿する
- */
-const postIssueComments = async () => {
-  const results = []
-
-  for (const task of activeTasks.value) {
-    // issue_url が設定されているタスク、または issue 番号が設定されているタスクのみ対象
-    if (!task.issue_url && !task.issue) continue
-
-    let issueInfo = null
-
-    // issue_url からパース
-    if (task.issue_url) {
-      issueInfo = parseIssueUrl(task.issue_url)
-    }
-
-    // issue_url がない場合、デフォルトリポジトリ + issue番号から構築
-    if (!issueInfo && task.issue) {
-      const defaultRepo = localStorage.getItem('githubRepo') || ''
-      if (defaultRepo) {
-        const [owner, repo] = defaultRepo.split('/')
-        if (owner && repo) {
-          issueInfo = { owner, repo, number: parseInt(task.issue, 10) }
-        }
+const saveChanges = async () => {
+   isSaving.value = true
+   try {
+      if(!activeReport.value) return
+      
+      // construct yaml
+      let fmStr = '---\n'
+      fmStr += `title: "${extractTitle({content: editContent.value})}"\n`
+      fmStr += `type: "${activeReport.value.type || 'daily'}"\n`
+      fmStr += `gchat_sent: ${!!activeReport.value.gchat_sent}\n`
+      // 3-state status: saved (weekly/saved), sent (daily+transmitted), draft (unsaved)
+      const reportStatus = activeReport.value.gchat_sent ? 'sent' : (isDailyReport.value ? 'draft' : 'saved')
+      fmStr += `report_status: "${reportStatus}"\n`
+      fmStr += `created_at: "${activeReport.value.created_at || new Date().toISOString()}"\n`
+      fmStr += `updated_at: "${new Date().toISOString()}"\n`
+      fmStr += '---\n\n'
+      fmStr += editContent.value
+      
+      const filename = activeReport.value._file
+      
+      if(window.electronAPI && window.electronAPI.saveReport) {
+         const response = await window.electronAPI.saveReport(filename, fmStr)
+         if(response.success) {
+            showMessage('REPORT DATA SECURED.')
+            isEditing.value = false
+            await refresh()
+         } else {
+            showMessage(`SAVE FAILED: ${response.error}`, 'error')
+         }
       }
-    }
-
-    if (!issueInfo) continue
-
-    // コメント本文を構築
-    const dateStr = targetReportDate.value.replace(/-/g, '/')
-    const commentBody = [
-      `## 📋 日報 進捗更新 (${dateStr})`,
-      '',
-      `**タスク**: ${task.title}`,
-      '',
-      '---',
-      '*Progress Memo App からの自動投稿*'
-    ].join('\n')
-
-    const result = await postIssueComment(
-      issueInfo.owner,
-      issueInfo.repo,
-      issueInfo.number,
-      commentBody
-    )
-
-    results.push({
-      task: task.title,
-      issue: `#${issueInfo.number}`,
-      ...result
-    })
-  }
-
-  // 結果をフィードバック
-  const successCount = results.filter(r => r.success).length
-  const failCount = results.filter(r => !r.success).length
-
-  if (successCount > 0) {
-    successMsg.value += ` | GitHub: ${successCount} issue(s) commented.`
-  }
-  if (failCount > 0) {
-    const errors = results.filter(r => !r.success).map(r => `${r.task}: ${r.error}`)
-    console.warn('[Report] Issue comment failures:', errors)
-    errorMsg.value = `GitHub comment failed for ${failCount} issue(s). Check console.`
-  }
+   } catch (e) {
+      showMessage(`ERROR: ${e.message}`, 'error')
+   } finally {
+      isSaving.value = false
+   }
 }
 
-const saveAsWeeklyReport = async () => {
-  if (!reportContent.value) {
-    errorMsg.value = 'Report content is empty.'
-    return
-  }
-
-  isSavingReport.value = true
-  successMsg.value = ''
-  errorMsg.value = ''
-
-  try {
-    const customDir = localStorage.getItem('tasksDir') || undefined
-    const res = await window.electronAPI.saveWeeklyReport(reportContent.value, customDir)
-
-    if (res.success) {
-      successMsg.value = `Weekly report saved: ${res.path}`
-    } else {
-      errorMsg.value = `Failed to save: ${res.error}`
-    }
-  } catch (e) {
-    errorMsg.value = e.message
-  } finally {
-    isSavingReport.value = false
-  }
-}
-
-// ─── 初期化処理 ──────────────────────────────────────────────────
-onMounted(async () => {
-  isInitializing.value = true
-  console.log('[Report] Component mounted, loading settings...')
-
-  // flatpickr 初期化（既存を維持）
-  if (pickerInput.value) {
-    flatpickr(pickerInput.value, {
-      dateFormat: 'Y/m/d',
-      defaultDate: targetReportDate.value,
-      onChange: (selectedDates, dateStr) => {
-        targetReportDate.value = dateStr
+const transmitToChat = async () => {
+   let webhookUrl = localStorage.getItem('googleChatWebhook') || ''
+   
+   if (webhookUrl && window.electronAPI && window.electronAPI.decryptString) {
+      try {
+         webhookUrl = await window.electronAPI.decryptString(webhookUrl)
+      } catch (e) {
+         // ignore
       }
-    })
-  }
+   }
 
-  // webhook URL 復号（既存を維持）
-  const savedUrl = localStorage.getItem('googleChatWebhook') || ''
-  if (savedUrl) {
-    if (window.electronAPI && window.electronAPI.decryptString) {
-      console.log('[Report] Decrypting webhook URL...')
-      webhookUrl.value = await window.electronAPI.decryptString(savedUrl)
-    } else {
-      webhookUrl.value = savedUrl
-    }
-  }
+   if (!webhookUrl) {
+      showMessage('NO WEBHOOK URL CONFIGURED IN SETTINGS.', 'error')
+      return
+   }
 
-  // プロジェクト・タスクのロード（コンテキストメニュー用）
-  try {
-    if (window.electronAPI && window.electronAPI.getAllMarkdowns) {
-      const customDir = localStorage.getItem('tasksDir') || undefined
+   isSending.value = true
+   
+   try {
+      const payloadText = convertToGoogleChat(editContent.value)
+      
+      const response = await fetch(webhookUrl, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ text: payloadText })
+      })
 
-      // useProjects composable でプロジェクトをロード
-      await loadProjects()
-
-      allTasks.value = await window.electronAPI.getAllMarkdowns(customDir)
-      activeTasks.value = allTasks.value.filter(t => t.status === 'inProgress')
-    }
-  } catch (err) {
-    console.error('Failed to load tasks:', err)
-  } finally {
-    isInitializing.value = false
-    console.log('[Report] Initialization complete.')
-  }
-
-  // メニュー外クリックでコンテキストメニューを閉じる
-  document.addEventListener('click', () => {
-    contextMenu.value.visible = false
-    ctxSubmenu.value = ''
-  })
-})
-
-// webhook URL の変更を暗号化して保存（既存を維持）
-watch(webhookUrl, async (newVal) => {
-  if (isInitializing.value) return
-
-  let finalUrl = newVal
-  if (window.electronAPI && window.electronAPI.encryptString) {
-    finalUrl = await window.electronAPI.encryptString(newVal)
-  }
-  localStorage.setItem('googleChatWebhook', finalUrl)
-})
+      if (response.ok) {
+         showMessage('UPLINK TRANSMISSION SUCCESSFUL.')
+         activeReport.value.gchat_sent = true
+         await saveChanges() // Save the updated status
+      } else {
+         showMessage(`TRANSMISSION FAILED: ${response.statusText}`, 'error')
+      }
+   } catch (e) {
+      showMessage(`ERROR: ${e.message}`, 'error')
+   } finally {
+      isSending.value = false
+   }
+}
 </script>
+
+<style scoped>
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(42, 106, 154, 0.1);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.task-item:hover {
+  background-color: rgba(186, 230, 253, 0.1);
+}
+.task-item.active {
+  background-color: rgba(186, 230, 253, 0.2);
+  border-left: 4px solid #bae6fd;
+}
+
+.editor-textarea {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #bae6fd;
+  padding: 1.5rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.625;
+  outline: none;
+  resize: none;
+}
+.editor-textarea:focus {
+  border-right: 1px solid rgba(186, 230, 253, 0.5);
+}
+
+.toolbar-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(42, 106, 154, 0.3);
+  color: #8cb4cf;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: colors 0.2s;
+}
+.toolbar-btn:hover {
+  background-color: rgba(186, 230, 253, 0.2);
+  color: #bae6fd;
+}
+</style>

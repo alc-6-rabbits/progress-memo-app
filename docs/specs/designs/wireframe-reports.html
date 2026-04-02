@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+<meta charset="UTF-8">
+<title>TCC Wireframe - REPORTS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        tcc: { bg: '#03080f', panel: '#071526', border: '#2a6a9a', text: '#8cb4cf', hi: '#bae6fd', warn: '#f59e0b', critical: '#ef4444', dim: '#1c3a52' }
+      },
+      fontFamily: { mono: ['"Share Tech Mono"', 'monospace'] }
+    }
+  }
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  body { background: #03080f; font-family: 'Share Tech Mono', monospace; }
+  .scanlines { position: fixed; inset: 0; pointer-events: none; z-index: 9999; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px); }
+  .glow-blue { text-shadow: 0 0 8px rgba(125,211,252,0.8); }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: rgba(42, 106, 154, 0.1); }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a6a9a; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+  .nav-link { @apply block w-full text-left px-4 py-2 text-tcc-text tracking-widest text-sm hover:text-tcc-hi transition-colors cursor-pointer; }
+  .nav-link.active { background: #c98a2c; color: #030b14; font-weight: bold; }
+  .tag { @apply text-[11px] px-2 py-0.5 border border-tcc-border text-tcc-text whitespace-nowrap; }
+  .badge-high { border-color:#ef4444; color:#fca5a5; }
+  .btn { @apply px-3 py-1 text-xs border tracking-widest transition-all; }
+  .btn-primary { @apply border-tcc-hi text-tcc-hi hover:bg-tcc-hi hover:text-tcc-bg; }
+  .task-item { @apply flex items-center gap-3 px-3 py-2 border-b border-tcc-border/10 hover:bg-tcc-hi/10 cursor-pointer transition-colors; }
+  .task-item.active { @apply bg-tcc-hi/20 border-l-4 border-l-tcc-hi; }
+  .editor-textarea { @apply w-full h-full bg-black/40 text-tcc-hi p-6 font-mono text-sm leading-relaxed outline-none border border-tcc-border/20 resize-none; }
+  .toolbar-btn { @apply w-8 h-8 flex items-center justify-center border border-tcc-border/30 hover:bg-tcc-hi/20 text-tcc-text hover:text-tcc-hi cursor-pointer; }
+</style>
+</head>
+<body class="h-screen w-screen overflow-hidden text-tcc-text font-mono flex flex-col">
+<div class="scanlines"></div>
+
+<!-- HEADER -->
+<header class="flex-none flex justify-between items-center px-8 py-3 border-b border-tcc-border bg-tcc-panel/60">
+  <div></div>
+  <h1 class="text-2xl tracking-widest glow-blue text-tcc-hi flex items-center gap-3">
+    <span class="text-tcc-border">[</span>
+    <span>TACTICAL COMMAND CENTER</span>
+    <span class="text-tcc-warn" id="ver-label">v1.5.0</span>
+    <span class="text-tcc-border">]</span>
+  </h1>
+  <div class="text-right text-xs text-tcc-text/70 tracking-widest">
+    <p id="hdate"></p><p id="htime"></p>
+  </div>
+</header>
+
+<!-- BODY -->
+<div class="flex flex-row flex-grow overflow-hidden">
+  <!-- SIDEBAR -->
+  <nav class="w-44 flex-none flex flex-col border-r border-tcc-border/50 bg-tcc-panel/30 pt-6 space-y-1">
+    <a href="wireframe-home.html" class="nav-link">HOME</a>
+    <a href="wireframe-tasks.html" class="nav-link">TASKS</a>
+    <a href="wireframe-reports.html" class="nav-link active">REPORTS</a>
+    <a href="wireframe-settings.html" class="nav-link">SETTINGS</a>
+    <div class="flex-grow"></div>
+  </nav>
+
+  <!-- MAIN CONTENT: REPORTS (TACTICAL EDITOR) -->
+  <main class="flex-grow flex flex-row overflow-hidden relative">
+
+    <!-- Reports List Sidebar -->
+    <aside class="w-80 flex-none border-r border-tcc-border/30 bg-tcc-panel/20 flex flex-col h-full overflow-hidden">
+       <div class="p-4 border-b border-tcc-border/20 text-[10px] tracking-widest opacity-60 uppercase font-bold text-center">
+         Generated Reports
+       </div>
+       <div class="flex-grow overflow-y-auto custom-scrollbar">
+         <!-- Folder Group -->
+         <div class="mt-2 text-[10px] font-bold text-tcc-text opacity-50 px-4 py-1.5 uppercase">[ 2026-04 ]</div>
+         <div class="task-item active">
+            <div class="flex-grow">
+               <div class="text-[12px] text-white font-bold">DAILY REPORT</div>
+               <div class="flex gap-2 mt-1">
+                 <span class="text-[10px] opacity-70">2026.04.01</span>
+                 <span class="badge-high tag text-[8px] bg-tcc-hi/20 text-tcc-hi border-tcc-hi font-bold">DRAFT</span>
+               </div>
+            </div>
+         </div>
+         
+         <div class="mt-4 text-[10px] font-bold text-tcc-text opacity-50 px-4 py-1.5 uppercase border-t border-tcc-border/10">[ 2026-03 ]</div>
+         <div class="task-item">
+            <div class="flex-grow">
+               <div class="text-[12px] opacity-70">WEEKLY REPORT</div>
+               <div class="flex gap-2 mt-1"><span class="text-[10px] opacity-40">2026.03.24-03.30</span></div>
+            </div>
+         </div>
+         <div class="task-item">
+            <div class="flex-grow">
+               <div class="text-[12px] opacity-70">DAILY REPORT</div>
+               <div class="flex gap-2 mt-1"><span class="text-[10px] opacity-40">2026.03.25</span></div>
+            </div>
+         </div>
+       </div>
+    </aside>
+
+    <!-- TRADITIONAL REPORT EDITOR -->
+    <div class="flex-grow flex flex-col h-full overflow-hidden bg-tcc-bg/50 relative">
+       
+       <!-- Header -->
+       <div class="flex-none p-6 border-b border-tcc-border/30 bg-tcc-panel/40 flex justify-between items-center">
+          <div>
+             <h1 class="text-xl text-tcc-hi font-bold glow-blue tracking-wider">DAILY REPORT: 2026.04.01</h1>
+             <div class="flex gap-4 mt-2 text-[10px] text-tcc-text uppercase tracking-widest">
+               <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-tcc-warn animate-pulse"></span> G-CHAT: NOT SENT</span>
+               <span class="opacity-50">|</span>
+               <span>TARGET PERIOD: 2026.04.01 00:00 - 23:59</span>
+             </div>
+          </div>
+          <div class="flex gap-2">
+             <button class="btn border-tcc-border text-tcc-text hover:text-white px-3">+ DAILY</button>
+             <button class="btn border-tcc-border text-tcc-text hover:text-white px-3">+ WEEKLY</button>
+             <div class="w-px h-6 bg-tcc-border/40 mx-2 self-center"></div>
+             <button id="btn-edit" class="btn btn-primary px-6" onclick="toggleEdit()">>> EDIT REPORT</button>
+             <button id="btn-save" class="hidden btn border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold px-6" onclick="toggleEdit()">[ SAVE ]</button>
+             <button id="btn-transmit" class="hidden btn border-tcc-warn text-tcc-warn hover:bg-tcc-warn hover:text-black font-bold px-6 animate-pulse">[ TRANSMIT TO G-CHAT ]</button>
+          </div>
+       </div>
+
+       <!-- Content Area -->
+       <div class="flex-grow flex overflow-hidden relative">
+          
+          <!-- EDITOR PANEL (Hidden by default, flex when active) -->
+          <div id="editor-panel" class="hidden w-1/2 flex-none border-r border-tcc-border/30 bg-black/20 flex-col">
+             <div class="flex-none bg-tcc-panel/60 px-4 py-2 border-b border-tcc-border/20 flex gap-2">
+                <div class="toolbar-btn font-bold">B</div><div class="toolbar-btn italic">I</div><div class="toolbar-btn underline">U</div>
+             </div>
+             <textarea class="editor-textarea custom-scrollbar border-0">### 2026-04-01 Activity Report
+
+#### 🚀 Focus Updates
+- UI REDESIGN: DASHBOARD 進捗
+  - ワイヤーフレームを v8 まで更新
+  - TCC (Tactical Command Center) のレイアウトを整理完了
+
+#### 📝 Notes
+- TIMELINE コンポーネントは HOME 画面に統合したためリンクを削除。</textarea>
+          </div>
+
+          <!-- PREVIEW PANEL -->
+          <div id="preview-panel" class="flex-grow p-8 overflow-y-auto custom-scrollbar leading-relaxed">
+             <div class="max-w-3xl mx-auto space-y-6">
+                 <div class="border border-tcc-border/30 p-8 bg-black/40">
+                    <h3 class="text-tcc-hi text-lg font-bold border-b border-tcc-border/30 pb-2 mb-4">2026-04-01 Activity Report</h3>
+                    
+                    <h4 class="text-tcc-text text-md font-bold text-white mt-6 mb-2 flex items-center gap-2">🚀 Focus Updates</h4>
+                    <ul class="list-disc pl-5 space-y-1 text-sm text-tcc-text">
+                       <li>UI REDESIGN: DASHBOARD 進捗
+                          <ul class="list-[circle] pl-5 mt-1 space-y-1 opacity-80">
+                             <li>ワイヤーフレームを v8 まで更新</li>
+                             <li>TCC (Tactical Command Center) のレイアウトを整理完了</li>
+                          </ul>
+                       </li>
+                    </ul>
+
+                    <h4 class="text-tcc-text text-md font-bold text-white mt-6 mb-2 flex items-center gap-2">📝 Notes</h4>
+                    <ul class="list-disc pl-5 space-y-1 text-sm text-gray-400">
+                       <li>TIMELINE コンポーネントは HOME 画面に統合したためリンクを削除。</li>
+                    </ul>
+                 </div>
+                 
+                 <!-- Chat Preview Mockup -->
+                 <div class="mt-8 border border-tcc-border/20 bg-tcc-panel/20 p-4 relative">
+                   <div class="absolute -top-3 left-4 bg-tcc-bg px-2 text-[10px] font-bold text-tcc-warn tracking-widest">>>> Google Chat Preview</div>
+                   <p class="text-[11px] text-gray-500 font-mono">*TCC Automated Report Generation is correctly evaluating Markdown formatting for Chat delivery...*</p>
+                 </div>
+             </div>
+          </div>
+       </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer class="flex-none flex items-center px-8 py-2.5 border-t border-tcc-border bg-tcc-panel/40 text-[10px] tracking-widest text-tcc-text">
+  <div class="flex items-center gap-3">
+    <span>SYSTEM: <span class="text-tcc-hi font-bold">ONLINE</span></span>
+    <span class="opacity-30">|</span>
+    <span>G-SYNC: <span class="text-green-400 font-bold">OK</span></span>
+  </div>
+  <div class="flex-grow text-center text-tcc-hi font-bold glow-blue text-[12px]">
+     TACTICAL DATA LINK // REPORT GENERATOR
+  </div>
+  <div class="flex items-center gap-3">
+    <span id="f-clock">12:34:56 UTC</span>
+  </div>
+</footer>
+
+<script>
+function tick() {
+  const now = new Date(); const pad = n => n.toString().padStart(2,'0')
+  if(document.getElementById('f-clock')) document.getElementById('f-clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} LMT`
+}
+setInterval(tick, 1000); tick()
+
+let isEditing = false;
+function toggleEdit() {
+  isEditing = !isEditing;
+  const panel = document.getElementById('editor-panel');
+  const preview = document.getElementById('preview-panel');
+  const btnEdit = document.getElementById('btn-edit');
+  const btnSave = document.getElementById('btn-save');
+  const btnTransmit = document.getElementById('btn-transmit');
+
+  if (isEditing) {
+    panel.classList.remove('hidden');
+    panel.classList.add('flex');
+    btnEdit.classList.add('hidden');
+    btnSave.classList.remove('hidden');
+    btnTransmit.classList.remove('hidden');
+  } else {
+    panel.classList.add('hidden');
+    panel.classList.remove('flex');
+    btnEdit.classList.remove('hidden');
+    btnSave.classList.add('hidden');
+    btnTransmit.classList.add('hidden');
+  }
+}
+</script>
+</body>
+</html>

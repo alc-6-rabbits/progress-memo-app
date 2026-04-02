@@ -17,6 +17,18 @@ module.exports = {
                 'ace-highlight': 'rgb(var(--color-ace-highlight) / <alpha-value>)',
                 'ace-warning': 'rgb(var(--color-ace-warning) / <alpha-value>)',
                 'ace-title': 'rgb(var(--color-ace-title) / <alpha-value>)',
+
+                // TCC Static Colors (Vivid Blue / Cyber Theme)
+                'tcc-bg': '#050d1e',
+                'tcc-panel': '#0a1a35',
+                'tcc-border': '#1a7abf',
+                'tcc-text': '#a8d8f0',
+                'tcc-hi': '#96ecff',
+                'tcc-warn': '#f5a623',
+                'tcc-critical': '#c0024bff',
+                'tcc-dim': '#0d2240',
+                'tcc-glow': '#1aa8d4',
+                'tcc-nebula': '#061428',
             },
             fontFamily: {
                 'mono': ['"Share Tech Mono"', '"Courier New"', 'Courier', 'monospace'],
