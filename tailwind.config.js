@@ -25,7 +25,7 @@ module.exports = {
                 'tcc-text': '#a8d8f0',
                 'tcc-hi': '#96ecff',
                 'tcc-warn': '#f5a623',
-                'tcc-critical': '#ef4444',
+                'tcc-critical': '#c0024bff',
                 'tcc-dim': '#0d2240',
                 'tcc-glow': '#1aa8d4',
                 'tcc-nebula': '#061428',
