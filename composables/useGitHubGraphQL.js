@@ -5,7 +5,7 @@ import { useGitHubREST } from './useGitHubREST'
 /**
  * Projects V2 アイテムの共通フラグメント（viewer / organization 両方で再利用）
  */
-const PROJECT_ITEMS_FRAGMENT = `
+const getProjectItemsFragment = (withSubIssues = true) => `
   nodes {
     id
     title
@@ -22,6 +22,14 @@ const PROJECT_ITEMS_FRAGMENT = `
             repository {
               nameWithOwner
             }
+            ${withSubIssues ? `
+            subIssues(first: 50) {
+              totalCount
+              nodes {
+                state
+              }
+            }
+            ` : ''}
           }
           ... on PullRequest {
             title
@@ -71,11 +79,11 @@ const PROJECT_ITEMS_FRAGMENT = `
 /**
  * ユーザー個人の Projects V2 を取得するクエリ
  */
-const VIEWER_PROJECTS_QUERY = `
+const VIEWER_PROJECTS_QUERY = (withSubIssues = true) => `
 query {
   viewer {
     projectsV2(first: 20) {
-      ${PROJECT_ITEMS_FRAGMENT}
+      ${getProjectItemsFragment(withSubIssues)}
     }
   }
 }
@@ -84,11 +92,11 @@ query {
 /**
  * Organization の Projects V2 を取得するクエリ
  */
-const ORG_PROJECTS_QUERY = `
+const ORG_PROJECTS_QUERY = (withSubIssues = true) => `
 query($orgLogin: String!) {
   organization(login: $orgLogin) {
     projectsV2(first: 20) {
-      ${PROJECT_ITEMS_FRAGMENT}
+      ${getProjectItemsFragment(withSubIssues)}
     }
   }
 }
@@ -169,6 +177,23 @@ const normalizeProjectItem = (item, projectTitle, projectNumber) => {
     }
   }
 
+  // サブ課題情報を集計
+  let subIssueCount = null
+  let subIssueDoneCount = null
+  let progressRate = null
+
+  if (content.subIssues) {
+    subIssueCount = content.subIssues.totalCount || 0
+    if (content.subIssues.nodes) {
+      subIssueDoneCount = content.subIssues.nodes.filter(n => n.state === 'CLOSED').length
+    } else {
+      subIssueDoneCount = 0
+    }
+    if (subIssueCount > 0) {
+      progressRate = Math.round((subIssueDoneCount / subIssueCount) * 100)
+    }
+  }
+
   // スケジュールステータスの算出
   const scheduleStatus = calculateScheduleStatus(status, startDate, dueDate)
 
@@ -185,9 +210,72 @@ const normalizeProjectItem = (item, projectTitle, projectNumber) => {
     dueDate: dueDate,
     iterationTitle: iterationTitle,
     scheduleStatus: scheduleStatus,
+    subIssueCount: subIssueCount,
+    subIssueDoneCount: subIssueDoneCount,
+    progressRate: progressRate,
     projectTitle: projectTitle,
     projectNumber: projectNumber
   }
+}
+
+/**
+ * プロジェクトアイテムを進捗表示用 Markdown に変換する
+ * @param {Array} items - normalizeProjectItem で正規化されたアイテム配列
+ * @returns {string} プロジェクト進捗セクションの Markdown テキスト
+ */
+export const formatProjectProgress = (items) => {
+  // Status が 'In Progress' または 'Todo' のアイテムをフィルタ
+  // startDate と dueDate が設定されているものを進捗管理用 Issue とみなす
+  const progressItems = items.filter(item => 
+    (item.status === 'In Progress' || item.status === 'Todo') &&
+    item.startDate && item.dueDate
+  )
+
+  if (progressItems.length === 0) return '（進捗管理用Issueはありません）'
+
+  // projectTitle でグルーピング
+  const groups = {}
+  for (const item of progressItems) {
+    if (!groups[item.projectTitle]) {
+      groups[item.projectTitle] = []
+    }
+    groups[item.projectTitle].push(item)
+  }
+
+  const lines = []
+  for (const [projectTitle, projectItems] of Object.entries(groups)) {
+    lines.push(`【${projectTitle}】`)
+    
+    // In Progress と ToDo に分ける
+    const inProgress = projectItems.filter(i => i.status === 'In Progress')
+    const todo = projectItems.filter(i => i.status === 'Todo')
+
+    if (inProgress.length > 0) {
+      lines.push('[In Progress 進捗状況]')
+      for (const item of inProgress) {
+        if (item.subIssueCount > 0) {
+          lines.push(`・${item.title}　${item.subIssueDoneCount} / ${item.subIssueCount}　${item.progressRate}%`)
+        } else {
+          lines.push(`・${item.title}　Sub-Issueなし`)
+        }
+      }
+      lines.push('')
+    }
+
+    if (todo.length > 0) {
+      lines.push('[ToDo リスト]')
+      for (const item of todo) {
+        if (item.subIssueCount > 0) {
+          lines.push(`・${item.title}　${item.subIssueDoneCount} / ${item.subIssueCount}　${item.progressRate}%`)
+        } else {
+          lines.push(`・${item.title}　Sub-Issueなし`)
+        }
+      }
+      lines.push('')
+    }
+  }
+
+  return lines.join('\n').trim()
 }
 
 export const useGitHubGraphQL = () => {
@@ -252,27 +340,42 @@ export const useGitHubGraphQL = () => {
 
       // 1. ユーザー個人プロジェクトを取得
       try {
-        const viewerData = await query(VIEWER_PROJECTS_QUERY)
+        const viewerData = await query(VIEWER_PROJECTS_QUERY(true))
         const viewerProjects = viewerData?.viewer?.projectsV2?.nodes || []
         console.log(`[GraphQL] Viewer projects: ${viewerProjects.length}`, viewerProjects.map(p => p.title))
         allProjects.push(...viewerProjects)
       } catch (e) {
-        console.warn('[GraphQL] Failed to fetch viewer projects:', e.message)
+        console.warn('[GraphQL] Viewer projects with subIssues failed, retrying without subIssues:', e.message)
+        try {
+          const viewerData = await query(VIEWER_PROJECTS_QUERY(false))
+          const viewerProjects = viewerData?.viewer?.projectsV2?.nodes || []
+          console.log(`[GraphQL] Viewer projects (fallback): ${viewerProjects.length}`)
+          allProjects.push(...viewerProjects)
+        } catch (e2) {
+          console.warn('[GraphQL] Viewer projects fallback failed:', e2.message)
+        }
       }
 
-      // 2. Organization プロジェクトを取得（githubRepo の owner 部分を使用）
+      // 2. Organization プロジェクトを取得
       const githubRepo = localStorage.getItem('githubRepo') || ''
       if (githubRepo) {
         const orgLogin = githubRepo.split('/')[0]
         if (orgLogin) {
           try {
-            const orgData = await query(ORG_PROJECTS_QUERY, { orgLogin })
+            const orgData = await query(ORG_PROJECTS_QUERY(true), { orgLogin })
             const orgProjects = orgData?.organization?.projectsV2?.nodes || []
             console.log(`[GraphQL] Org "${orgLogin}" projects: ${orgProjects.length}`, orgProjects.map(p => p.title))
             allProjects.push(...orgProjects)
           } catch (e) {
-            // owner がユーザー名（Organization ではない）場合はここに入る。正常動作。
-            console.warn(`[GraphQL] Org query for "${orgLogin}" failed (may be a user, not org):`, e.message)
+            console.warn(`[GraphQL] Org projects with subIssues failed, retrying without subIssues:`, e.message)
+            try {
+              const orgData = await query(ORG_PROJECTS_QUERY(false), { orgLogin })
+              const orgProjects = orgData?.organization?.projectsV2?.nodes || []
+              console.log(`[GraphQL] Org "${orgLogin}" projects (fallback): ${orgProjects.length}`)
+              allProjects.push(...orgProjects)
+            } catch (e2) {
+              console.warn(`[GraphQL] Org projects fallback failed:`, e2.message)
+            }
           }
         }
       }
@@ -353,6 +456,7 @@ export const useGitHubGraphQL = () => {
     checkProjectsAccess,
     invalidateCache,
     loading,
-    error
+    error,
+    formatProjectProgress
   }
 }

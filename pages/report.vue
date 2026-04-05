@@ -49,7 +49,7 @@
          <span>>> SELECT OR GENERATE REPORT</span>
          <div class="flex gap-4 opacity-100">
             <button @click="createReport('daily')" class="btn border-tcc-border text-tcc-text hover:text-white px-4 hover:border-tcc-hi transition-colors">+ NEW DAILY</button>
-            <button @click="createReport('weekly')" class="btn border-tcc-border text-tcc-text hover:text-white px-4 hover:border-tcc-hi transition-colors">+ NEW WEEKLY</button>
+            <button @click="openWeeklyDatePicker" class="btn border-tcc-border text-tcc-text hover:text-white px-4 hover:border-tcc-hi transition-colors">+ NEW WEEKLY</button>
          </div>
        </div>
 
@@ -84,7 +84,7 @@
             
             <div class="flex gap-2 flex-none">
                <button @click="createReport('daily')" class="btn border-tcc-border text-tcc-text hover:text-white px-3" :disabled="isFetchingActivity">+ DAILY</button>
-               <button @click="createReport('weekly')" class="btn border-tcc-border text-tcc-text hover:text-white px-3" :disabled="isFetchingActivity">+ WEEKLY</button>
+               <button @click="openWeeklyDatePicker" class="btn border-tcc-border text-tcc-text hover:text-white px-3" :disabled="isFetchingActivity">+ WEEKLY</button>
                <div class="w-px h-6 bg-tcc-border/40 mx-2 self-center"></div>
                
                <template v-if="!isCreating">
@@ -158,6 +158,27 @@
          </div>
        </template>
 
+       <!-- Weekly Date Picker Modal -->
+       <div v-if="showWeeklyDatePicker" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-[20000] flex items-center justify-center font-sans tracking-widest">
+          <div class="bg-[#1e2022] border border-tcc-hi shadow-[0_0_30px_rgba(30,144,255,0.2)] p-8 max-w-sm w-full">
+             <h2 class="text-tcc-hi text-lg font-bold mb-6 border-b border-tcc-hi/30 pb-2 glow-blue">WEEKLY REPORT PERIOD</h2>
+             <div class="space-y-4 mb-8">
+                <div class="flex flex-col gap-1">
+                   <label class="text-xs text-tcc-text">START DATE:</label>
+                   <input ref="startPickerInput" type="text" class="bg-black/50 border border-tcc-border text-white px-3 py-2 text-sm focus:border-tcc-hi outline-none" placeholder="YYYY/MM/DD">
+                </div>
+                <div class="flex flex-col gap-1">
+                   <label class="text-xs text-tcc-text">END DATE:</label>
+                   <input ref="endPickerInput" type="text" class="bg-black/50 border border-tcc-border text-white px-3 py-2 text-sm focus:border-tcc-hi outline-none" placeholder="YYYY/MM/DD">
+                </div>
+             </div>
+             <div class="flex justify-end gap-3">
+                <button @click="showWeeklyDatePicker = false" class="btn border-tcc-border text-tcc-text hover:text-white px-4 py-2 text-xs">CANCEL</button>
+                <button @click="confirmWeeklyReport" class="btn btn-primary px-6 py-2 text-xs">GENERATE >></button>
+             </div>
+          </div>
+       </div>
+
     </div>
   </div>
 </template>
@@ -165,7 +186,11 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { marked } from 'marked'
+import flatpickr from 'flatpickr'
+import 'flatpickr/dist/flatpickr.min.css'
+import 'flatpickr/dist/themes/dark.css'
 import { useGitHubREST } from '~/composables/useGitHubREST'
+import { useGitHubGraphQL } from '~/composables/useGitHubGraphQL'
 import { useGoogleChatMd } from '~/composables/useGoogleChatMd'
 
 const pending = ref(true)
@@ -192,7 +217,130 @@ const sysMsg = ref('')
 const sysMsgType = ref('success') // success, error
 
 const { fetchUserEvents, formatEventsAsMarkdown, postIssueComment, parseIssueUrl } = useGitHubREST()
+const { fetchAllProjectItems, formatProjectProgress } = useGitHubGraphQL()
 const { convertToGoogleChat, renderGoogleChatPreview } = useGoogleChatMd()
+
+const format = (d) => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`
+
+const showWeeklyDatePicker = ref(false)
+const weeklyStartDate = ref('')
+const weeklyEndDate = ref('')
+const startPickerInput = ref(null)
+const endPickerInput = ref(null)
+
+const openWeeklyDatePicker = () => {
+   const now = new Date()
+   const m = new Date(now)
+   m.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1))
+   const f = new Date(m)
+   f.setDate(m.getDate() + 4)
+   
+   weeklyStartDate.value = format(m)
+   weeklyEndDate.value = format(f)
+   showWeeklyDatePicker.value = true
+   
+   nextTick(() => {
+      if (startPickerInput.value && !startPickerInput.value._flatpickr) {
+         flatpickr(startPickerInput.value, {
+            dateFormat: "Y/m/d",
+            defaultDate: weeklyStartDate.value,
+            onChange: (selectedDates, dateStr) => { weeklyStartDate.value = dateStr }
+         })
+      } else if (startPickerInput.value && startPickerInput.value._flatpickr) {
+         startPickerInput.value._flatpickr.setDate(weeklyStartDate.value)
+      }
+
+      if (endPickerInput.value && !endPickerInput.value._flatpickr) {
+         flatpickr(endPickerInput.value, {
+            dateFormat: "Y/m/d",
+            defaultDate: weeklyEndDate.value,
+            onChange: (selectedDates, dateStr) => { weeklyEndDate.value = dateStr }
+         })
+      } else if (endPickerInput.value && endPickerInput.value._flatpickr) {
+         endPickerInput.value._flatpickr.setDate(weeklyEndDate.value)
+      }
+   })
+}
+
+const confirmWeeklyReport = () => {
+   showWeeklyDatePicker.value = false
+   createReport('weekly', weeklyStartDate.value, weeklyEndDate.value)
+}
+
+const withCommentMarkers = (text) => {
+   if (!text) return ''
+   return text.split('\n').map(line => {
+      if (line.trim().startsWith('- ')) {
+         return `${line}\n  ⇒　`
+      }
+      return line
+   }).join('\n')
+}
+
+const buildReportTemplate = async (options) => {
+   const { type, title, startStr, endStr, allLocalTasks, activeTasks, hasGitHub } = options
+   
+   let githubMd = '（GitHub 連携が設定されていません）'
+   if (hasGitHub) {
+      try {
+         const events = type === 'daily' ? await fetchUserEvents(startStr) : await fetchUserEvents(startStr, endStr)
+         githubMd = formatEventsAsMarkdown(events)
+      } catch (e) {
+         console.warn('Failed to fetch events', e)
+         githubMd = '（取得に失敗しました）'
+      }
+   }
+   
+   const priorityOrder = { 'High': 0, 'Medium': 1, 'Low': 2, undefined: 3 }
+   const sortedTasks = [...activeTasks].sort((a, b) => {
+      const pa = priorityOrder[a.priority] ?? 3
+      const pb = priorityOrder[b.priority] ?? 3
+      if (pa !== pb) return pa - pb
+      const da = a.due_date ? new Date(a.due_date).getTime() : 9999999999999
+      const db = b.due_date ? new Date(b.due_date).getTime() : 9999999999999
+      return da - db
+   })
+   const nextTasksMd = sortedTasks.slice(0, 5).map(t => `- [${t.project_name || '?'}] ${t.title}`).join('\n')
+   const nextTasksCommented = nextTasksMd.length > 0 ? withCommentMarkers(nextTasksMd) : '（予定されているタスクはありません）'
+
+   const s = new Date(startStr); s.setHours(0,0,0,0)
+   const e = type === 'daily' ? new Date() : new Date(endStr)
+   e.setHours(23,59,59,999)
+   
+   const periodTasks = allLocalTasks.filter(t => t.updated_at && (new Date(t.updated_at).getTime() >= s.getTime() && new Date(t.updated_at).getTime() <= e.getTime()))
+   const periodTasksMd = periodTasks.length > 0
+      ? periodTasks.map(t => `- [${t.project_name || 'UNCLASSIFIED'}] ${t.title} (${t.status})`).join('\n')
+      : ''
+   const periodTasksCommented = periodTasksMd.length > 0 ? withCommentMarkers(periodTasksMd) : '（記録されたタスク更新はありません）'
+
+   let progressSection = ''
+   if (hasGitHub) {
+      try {
+         const items = await fetchAllProjectItems()
+         const md = formatProjectProgress(items)
+         if (md) {
+            progressSection = `## 1. プロジェクト進捗状況\n${md}\n\n`
+         }
+      } catch (err) {
+         console.warn('Failed to fetch project progress:', err)
+      }
+   }
+
+   const section2Title = type === 'daily' ? (progressSection ? '2. 本日の実績' : '1. 本日の実績') : (progressSection ? '2. 今週の実績' : '1. 今週の実績')
+   const section3Title = type === 'daily' ? (progressSection ? '3. 明日の予定' : '2. 明日の予定') : (progressSection ? '3. 来週の予定' : '2. 来週の予定')
+
+   let template = `# ${title}\n\n`
+   template += progressSection
+   template += `## ${section2Title}\n### [GitHub Activity]\n${withCommentMarkers(githubMd)}\n\n`
+   template += `### [Local Tasks]\n${periodTasksCommented}\n\n`
+   template += `## ${section3Title}\n${nextTasksCommented}\n\n`
+   if (type === 'weekly') {
+      template += `## 4. 特記事項 / 定例メモ\n\n`
+   }
+   template += `以上です。`
+   
+   return template
+}
 
 const refresh = async () => {
   pending.value = true
@@ -344,7 +492,7 @@ const getLocalTasks = async () => {
    return []
 }
 
-const createReport = async (type) => {
+const createReport = async (type, customStart = null, customEnd = null) => {
    if(isEditing.value) {
       if(!confirm('Discard unsaved edits to generate new report?')) return
    }
@@ -353,9 +501,7 @@ const createReport = async (type) => {
    
    try {
       const now = new Date()
-      const format = (d) => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`
-      
-      let title, template, startStr, endStr
+      let title, startStr, endStr
       
       const allLocalTasks = await getLocalTasks()
       const activeTasks = allLocalTasks.filter(t => t.status === 'in-progress' || t.status === 'inProgress' || t.status === 'engaged' || !t.status || t.status === 'todo')
@@ -364,43 +510,16 @@ const createReport = async (type) => {
          startStr = format(now)
          endStr = startStr
          title = `DAILY REPORT: ${startStr}`
-         
-         const events = await fetchUserEvents(startStr)
-         const githubMd = formatEventsAsMarkdown(events)
-         
-         const s = new Date(startStr); s.setHours(0,0,0,0)
-         const e = new Date(); e.setHours(23,59,59,999)
-         const dailyTasks = allLocalTasks.filter(t => t.updated_at && (new Date(t.updated_at) >= s && new Date(t.updated_at) <= e))
-         
-         const tasksMd = dailyTasks.length > 0 
-            ? dailyTasks.map(t => `- [${t.project_name || 'UNCLASSIFIED'}] ${t.title}`).join('\n')
-            : '（記録されたタスク更新はありません）'
-         
-         template = `# ${title}\n\n## 1. 本日の実績\n### [GitHub Activity]\n${githubMd}\n\n### [Local Tasks]\n${tasksMd}\n\n## 2. 明日の予定\n${activeTasks.slice(0, 5).map(t => `- [${t.project_name || '?'}] ${t.title}`).join('\n')}\n\n以上です。`
-         
       } else {
-         const m = new Date(now)
-         m.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1))
-         const f = new Date(m)
-         f.setDate(m.getDate() + 4)
-         
-         startStr = format(m)
-         endStr = format(f)
+         startStr = customStart
+         endStr = customEnd
          title = `WEEKLY REPORT: ${startStr}-${endStr}`
-         
-         const events = await fetchUserEvents(startStr, endStr)
-         const githubMd = formatEventsAsMarkdown(events)
-         
-         const s = new Date(m); s.setHours(0,0,0,0)
-         const e = new Date(f); e.setHours(23,59,59,999)
-         const weeklyTasks = allLocalTasks.filter(t => t.updated_at && (new Date(t.updated_at) >= s && new Date(t.updated_at) <= e))
-         
-         const tasksMd = weeklyTasks.length > 0 
-            ? weeklyTasks.map(t => `- [${t.project_name || '?'}] ${t.title} (${t.status})`).join('\n')
-            : '（記録されたタスク更新はありません）'
-         
-         template = `# ${title}\n\n## 1. 今週の実績\n### [GitHub Activity]\n${githubMd}\n\n### [Local Tasks]\n${tasksMd}\n\n## 2. 来週の予定\n${activeTasks.slice(0, 5).map(t => `- [${t.project_name || '?'}] ${t.title}`).join('\n')}\n\n## 3. 特記事項 / 定例メモ\n\n以上です。`
       }
+      
+      const hasGitHub = !!(localStorage.getItem('githubPat'))
+      const template = await buildReportTemplate({
+         type, title, startStr, endStr, allLocalTasks, activeTasks, hasGitHub
+      })
       
       const newFilestr = `${type}-report-${now.toISOString().split('T')[0]}.md`
       
