@@ -241,14 +241,14 @@ const refresh = async () => {
       const data = await window.electronAPI.getAllMarkdowns()
       allTasks.value = data
       
-      // Auto-select if newly loaded
-      if (!activeTask.value && data.length > 0) {
+      // Auto-select or handle new task creation
+      if (!activeTask.value) {
          if (route.query.new) {
             createNewEmptyTask()
-         } else {
+         } else if (data.length > 0) {
             selectTask(data[0])
          }
-      } else if (activeTask.value) {
+      } else {
          // Reload the current active task if it was updated
          const updatedTask = data.find(t => t.id === activeTask.value.id || t._file === activeTask.value._file)
          if (updatedTask && !isEditing.value) {

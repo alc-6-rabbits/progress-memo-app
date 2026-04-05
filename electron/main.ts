@@ -1,7 +1,14 @@
-import { app, BrowserWindow, ipcMain, dialog, safeStorage } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, safeStorage, protocol, net } from 'electron'
+import { pathToFileURL } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
 import fs from 'node:fs'
+
+// Register "app" protocol as privileged before app is ready
+// This allows resolving relative paths and Fetch API correctly (fixing net::ERR_UNEXPECTED)
+protocol.registerSchemesAsPrivileged([
+    { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }
+])
 
 process.env.DIST = path.join(__dirname, '../dist')
 
@@ -17,6 +24,7 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
+            sandbox: false, // Required for ASAR access in some environments with custom protocols
         },
         width: 1200,
         height: 800,
@@ -46,7 +54,8 @@ function createWindow() {
     if (VITE_DEV_SERVER_URL) {
         win.loadURL(VITE_DEV_SERVER_URL)
     } else {
-        win.loadFile(path.join(process.env.DIST || '', 'index.html'))
+        // Use custom protocol for production to avoid "Not allowed to load local resource"
+        win.loadURL('app://index.html')
     }
 }
 
@@ -137,7 +146,8 @@ ipcMain.handle('open-external', async (event, url) => {
 
 ipcMain.handle('save-markdown', async (event, filename: string, content: string, customDirPath?: string) => {
     try {
-        const rootDir = customDirPath ? customDirPath : path.join(app.getAppPath(), 'content', 'tasks')
+        const defaultDataDir = path.join(app.getPath('userData'), 'tcc-data')
+        const rootDir = customDirPath ? customDirPath : path.join(defaultDataDir, 'tasks')
         const targetDir = path.join(rootDir, 'tasks')
         const filePath = path.join(targetDir, filename)
 
@@ -158,7 +168,8 @@ ipcMain.handle('save-markdown', async (event, filename: string, content: string,
 ipcMain.handle('update-markdown-status', async (event, filename: string, newStatus: string, customDirPath?: string) => {
     try {
         console.log(`[IPC] update-markdown-status called with filename: ${filename}, newStatus: ${newStatus}`)
-        const rootDir = customDirPath ? customDirPath : path.join(app.getAppPath(), 'content', 'tasks')
+        const defaultDataDir = path.join(app.getPath('userData'), 'tcc-data')
+        const rootDir = customDirPath ? customDirPath : path.join(defaultDataDir, 'tasks')
         const targetDir = path.join(rootDir, 'tasks')
         const filePath = path.join(targetDir, filename)
         if (!fs.existsSync(filePath)) throw new Error('File not found at ' + filePath)
@@ -184,7 +195,8 @@ ipcMain.handle('update-markdown-status', async (event, filename: string, newStat
 
 ipcMain.handle('get-projects', async (event, customDirPath?: string) => {
     try {
-        const targetDir = customDirPath ? customDirPath : path.join(app.getAppPath(), 'content', 'tasks')
+        const defaultDataDir = path.join(app.getPath('userData'), 'tcc-data')
+        const targetDir = customDirPath ? customDirPath : path.join(defaultDataDir, 'tasks')
         const filePath = path.join(targetDir, 'projects.json')
 
         if (!fs.existsSync(filePath)) {
@@ -210,7 +222,8 @@ ipcMain.handle('get-projects', async (event, customDirPath?: string) => {
 
 ipcMain.handle('save-projects', async (event, data: any, customDirPath?: string) => {
     try {
-        const targetDir = customDirPath ? customDirPath : path.join(app.getAppPath(), 'content', 'tasks')
+        const defaultDataDir = path.join(app.getPath('userData'), 'tcc-data')
+        const targetDir = customDirPath ? customDirPath : path.join(defaultDataDir, 'tasks')
         const filePath = path.join(targetDir, 'projects.json')
 
         if (!fs.existsSync(targetDir)) {
@@ -227,7 +240,8 @@ ipcMain.handle('save-projects', async (event, data: any, customDirPath?: string)
 
 ipcMain.handle('save-report', async (event, filename: string, content: string, customDirPath?: string) => {
     try {
-        const rootDir = customDirPath ? path.dirname(customDirPath) : path.join(app.getAppPath(), 'content')
+        const defaultDataDir = path.join(app.getPath('userData'), 'tcc-data')
+        const rootDir = customDirPath ? path.dirname(customDirPath) : defaultDataDir
         const targetDir = path.join(rootDir, 'reports')
         
         if (!fs.existsSync(targetDir)) {
@@ -246,7 +260,8 @@ ipcMain.handle('save-report', async (event, filename: string, content: string, c
 
 ipcMain.handle('get-all-reports', async (event, customDirPath?: string) => {
     try {
-        const rootDir = customDirPath ? path.dirname(customDirPath) : path.join(app.getAppPath(), 'content')
+        const defaultDataDir = path.join(app.getPath('userData'), 'tcc-data')
+        const rootDir = customDirPath ? path.dirname(customDirPath) : defaultDataDir
         const targetDir = path.join(rootDir, 'reports')
         
         if (!fs.existsSync(targetDir)) {
@@ -283,7 +298,8 @@ ipcMain.handle('get-all-reports', async (event, customDirPath?: string) => {
 // Add new IPC handler for getting all markdown files
 ipcMain.handle('get-all-markdowns', async (event, customDirPath?: string) => {
     try {
-        const rootDir = customDirPath ? customDirPath : path.join(app.getAppPath(), 'content', 'tasks')
+        const defaultDataDir = path.join(app.getPath('userData'), 'tcc-data')
+        const rootDir = customDirPath ? customDirPath : path.join(defaultDataDir, 'tasks')
         const tasksDir = path.join(rootDir, 'tasks')
 
         // Migration step: move existing .md files from rootDir to tasksDir
@@ -399,4 +415,18 @@ ipcMain.handle('get-all-markdowns', async (event, customDirPath?: string) => {
     }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+    // Register custom protocol to serve files directly from DIST folder
+    // This bypasses strict "file://" security and absolute path issues in Electron/Nuxt 3.
+    protocol.handle('app', (request) => {
+        const { pathname } = new URL(request.url)
+        let relativePath = pathname
+        if (relativePath.startsWith('/')) relativePath = relativePath.slice(1)
+        if (!relativePath) relativePath = 'index.html'
+        
+        const filePath = path.join(process.env.DIST || '', relativePath)
+        return net.fetch(pathToFileURL(filePath).toString())
+    })
+
+    createWindow()
+})

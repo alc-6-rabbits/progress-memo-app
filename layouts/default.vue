@@ -73,9 +73,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
+import pkg from '../package.json'
+
 const router = useRouter()
 const route = useRoute()
-const appVersion = ref('v1.5.0')
+const appVersion = ref(`v${pkg.version}`)
 const currentTime = ref(new Date())
 let timer
 
