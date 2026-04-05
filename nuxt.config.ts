@@ -62,10 +62,11 @@ export default defineNuxtConfig({
       const targetPath = path.join(process.cwd(), 'dist', 'index.html')
       if (fs.existsSync(targetPath)) {
         let html = fs.readFileSync(targetPath, 'utf-8')
-        html = html.replace(/src="\/assets\//g, 'src="./assets/')
-        html = html.replace(/href="\/assets\//g, 'href="./assets/')
+        // Replace all absolute paths with relative ones to work with custom protocols and file system
+        // Matches src="/..." and href="/..." but avoids data URIs and URLs with protocols
+        html = html.replace(/(src|href)="\/([^/])/g, '$1="./$2')
         fs.writeFileSync(targetPath, html, 'utf-8')
-        console.log('[Nuxt Hooks] Replaced absolute asset paths with relative paths in index.html for Electron compatibility.')
+        console.log('[Nuxt Hooks] Converted all absolute asset paths to relative paths in index.html.')
       }
     }
   }
