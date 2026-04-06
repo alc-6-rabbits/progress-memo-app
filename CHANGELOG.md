@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## [Unreleased]
+## [1.7.0] - 2026-04-06
 ### Added
 - **HOME画面（Dashboard）の表示高度化 (Evolution Phase)**
   - DATALINK FEED: GitHub（#No/Repo）およびローカル（本文プレビュー）の詳細表示に対応。
