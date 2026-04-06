@@ -41,7 +41,13 @@
         </p>
         <div class="flex-grow overflow-y-auto custom-scrollbar text-[11px] space-y-2 pr-1">
           <div v-for="(task, idx) in recentTasks" :key="idx" @click="openTask(task)" class="truncate border-l-2 py-0.5 pl-2 cursor-pointer hover:bg-tcc-hi/10" :class="[idx === 0 ? 'text-tcc-hi border-tcc-hi/40 bg-tcc-hi/5' : 'text-tcc-text border-transparent opacity-70 hover:opacity-100']">
-            {{ formatTimeOnly(task.updated_at) }} [ {{ task.title }} ]
+            <div class="flex justify-between items-center opacity-60 text-[9px] mb-0.5">
+               <span>{{ formatTimeOnly(task.updated_at) }}</span>
+               <span v-if="task.source === 'github'" class="text-tcc-hi font-bold">#{{ task.issue }} [{{ task.repository?.split('/')[1] }}] {{ task.state }}</span>
+               <span v-else class="text-gray-400 font-bold uppercase tracking-tighter">Local Artifact</span>
+            </div>
+            <div class="truncate font-bold">{{ task.title }}</div>
+            <div v-if="task.source !== 'github' && task.content" class="text-[9px] opacity-40 italic truncate">{{ task.content }}</div>
           </div>
         </div>
       </div>
@@ -74,30 +80,45 @@
              <div class="text-[11px] font-bold text-gray-400 border-b border-gray-600/30 mb-3 px-2 flex justify-between"><span>TODO</span><span>({{ tasksTodo.length }})</span></div>
              <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 space-y-2">
                 <div v-for="task in tasksTodo" :key="task.id" @click="openTask(task)" class="task-card cursor-pointer">
-                   <div class="flex justify-between items-center mb-1.5"><span class="text-[10px] font-bold text-gray-500 truncate pr-2">{{ task.project_name || 'UNCLASSIFIED' }}</span><span v-if="task.priority" class="tag flex-none" :class="'badge-' + task.priority.toLowerCase()">{{ task.priority.toUpperCase() }}</span></div>
+                   <div class="flex justify-between items-center mb-1.5 opacity-60">
+                      <span class="text-[9px] font-bold text-gray-400 tracking-widest truncate pr-2 uppercase">
+                         {{ task.source === 'github' ? '#' + task.issue : 'Local' }} // {{ task.project_name || 'UNCLASSIFIED' }}
+                      </span>
+                      <span v-if="task.priority" class="tag flex-none" :class="'badge-' + (task.priority || 'medium').toLowerCase()">{{ (task.priority || 'MEDIUM').toUpperCase() }}</span>
+                   </div>
                    <div class="text-[12px] text-gray-300 font-bold leading-snug">{{ task.title }}</div>
                 </div>
              </div>
           </div>
           
-          <!-- IN PROGRESS -->
+          <!-- IN PROGRESS / ENGAGED -->
           <div class="flex flex-col min-w-[220px] flex-1 bg-tcc-hi/5 border-x border-tcc-hi/10 px-1">
              <div class="text-[11px] font-bold text-tcc-hi border-b border-tcc-hi/30 mb-3 px-2 flex justify-between"><span>ENGAGED</span><span>({{ tasksInProgress.length }})</span></div>
              <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 space-y-2">
                 <div v-for="task in tasksInProgress" :key="task.id" @click="openTask(task)" class="task-card border-tcc-hi/40 relative cursor-pointer hover:border-tcc-hi">
                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-tcc-hi glow-blue"></div>
-                   <div class="flex justify-between items-center mb-1.5 pl-2"><span class="text-[10px] font-bold text-tcc-hi truncate pr-2">{{ task.project_name || 'UNCLASSIFIED' }}</span><span v-if="task.priority" class="tag flex-none" :class="'badge-' + (task.priority || 'medium').toLowerCase()">{{ (task.priority || 'MEDIUM').toUpperCase() }}</span></div>
+                   <div class="flex justify-between items-center mb-1.5 pl-2">
+                      <span class="text-[9px] font-bold text-tcc-hi tracking-widest truncate pr-2 uppercase">
+                         {{ task.source === 'github' ? '#' + task.issue : 'Local' }} // {{ task.project_name || 'UNCLASSIFIED' }}
+                      </span>
+                      <span v-if="task.priority" class="tag flex-none" :class="'badge-' + (task.priority || 'medium').toLowerCase()">{{ (task.priority || 'MEDIUM').toUpperCase() }}</span>
+                   </div>
                    <div class="text-[12px] text-white font-bold leading-snug pl-2">{{ task.title }}</div>
                 </div>
              </div>
           </div>
           
-          <!-- DONE -->
+          <!-- ICEBOX -->
           <div class="flex flex-col min-w-[200px] flex-1">
-             <div class="text-[11px] font-bold text-green-500/70 border-b border-green-900/30 mb-3 px-2 flex justify-between"><span>COMPLETED</span><span>({{ tasksDone.length }})</span></div>
+             <div class="text-[11px] font-bold text-gray-500 border-b border-gray-600/30 mb-3 px-2 flex justify-between"><span>ICEBOX</span><span>({{ tasksIcebox.length }})</span></div>
              <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 opacity-60 space-y-2">
-                <div v-for="task in tasksDone" :key="task.id" @click="openTask(task)" class="task-card cursor-pointer hover:opacity-100 transition-opacity">
-                   <div class="text-[11px] text-tcc-text truncate">{{ task.title }}</div>
+                <div v-for="task in tasksIcebox" :key="task.id" @click="openTask(task)" class="task-card cursor-pointer hover:opacity-100 transition-opacity">
+                   <div class="flex justify-between items-center mb-1.5">
+                      <span class="text-[9px] font-bold text-gray-500 tracking-widest truncate pr-2 uppercase">
+                         {{ task.source === 'github' ? '#' + task.issue : 'Local' }} // {{ task.project_name || 'UNCLASSIFIED' }}
+                      </span>
+                   </div>
+                   <div class="text-[11px] text-tcc-text truncate font-bold">{{ task.title }}</div>
                 </div>
              </div>
           </div>
@@ -227,6 +248,10 @@ const tasksInProgress = computed(() => filteredTasks.value.filter(t => {
   const s = String(t.status || '').toLowerCase()
   return s === 'in-progress' || s === 'inprogress' || s === 'engaged' || s === 'in progress'
 }))
+const tasksIcebox = computed(() => filteredTasks.value.filter(t => {
+  const s = String(t.status || '').toLowerCase()
+  return s === 'icebox' || s === 'standby' || s === 'someday'
+}))
 const tasksDone = computed(() => filteredTasks.value.filter(t => {
   const s = String(t.status || '').toLowerCase()
   return s === 'done' || s === 'archived'
@@ -303,9 +328,10 @@ const weekLabelRange = computed(() => {
 })
 
 const timelineTasks = computed(() => {
-  // Show active tasks and recently updated ones that fall into this week
-  // For simplicity, limit to 20
-  return filteredTasks.value.slice(0, 20)
+  // Only tasks with both startDate and dueDate (Target Date)
+  return filteredTasks.value
+    .filter(t => t.startDate && (t.dueDate || t.target_date))
+    .slice(0, 20)
 })
 
 const truncateTask = (title) => {
@@ -313,39 +339,50 @@ const truncateTask = (title) => {
   return title.length > 12 ? title.substring(0,10)+'...' : title
 }
 
+const daysBetween = (d1, d2) => {
+  const t1 = new Date(d1).setHours(0,0,0,0)
+  const t2 = new Date(d2).setHours(0,0,0,0)
+  return Math.round((t2 - t1) / (1000 * 60 * 60 * 24))
+}
+
 const getGanttBarStyle = (task) => {
-  // Very rough mock mapping: 
-  // determine start and end column mapping from 1 to 7 based on updated_at
-  const dateStr = task.updated_at || task.created_at
-  if (!dateStr) return { left: '10%', right: '50%' }
+  const start = task.startDate
+  const end = task.dueDate || task.target_date
+  if (!start || !end) return { display: 'none' }
+
+  const weekStart = new Date(currentWeekDays.value[0].fullDate)
+  const weekEnd = new Date(currentWeekDays.value[6].fullDate)
   
-  const d = new Date(dateStr)
-  let dayIdx = -1
-  currentWeekDays.value.forEach((day, i) => {
-     if(day.fullDate === d.toISOString().split('T')[0]) dayIdx = i
-  })
+  const taskStart = new Date(start)
+  const taskEnd = new Date(end)
   
-  if (dayIdx === -1) {
-    if (d < new Date(currentWeekDays.value[0].fullDate)) {
-       return { left: '0%', width: '10%' }
-    } else {
-       return { left: '90%', width: '10%' }
-    }
+  const startOffset = daysBetween(weekStart, taskStart)
+  const duration = daysBetween(taskStart, taskEnd) + 1
+  
+  const visibleStart = Math.max(0, startOffset)
+  const visibleEnd = Math.min(7, startOffset + duration)
+  const visibleDuration = visibleEnd - visibleStart
+  
+  if (visibleDuration <= 0) return { display: 'none' }
+  
+  const pctLeft = (visibleStart / 7) * 100
+  const pctWidth = (visibleDuration / 7) * 100
+  
+  return { 
+    left: `${pctLeft}%`, 
+    width: `calc(${pctWidth}% - 2px)`,
+    marginRight: '2px'
   }
-  
-  const pct = (dayIdx / 7) * 100
-  // Span across 2 days artificially
-  return { left: `${pct}%`, width: `${(1/7)*100*2}%` }
 }
 
 const getGanttBarClass = (task) => {
-  if (task.status === 'done' || task.status === 'archived') {
-    return 'bg-green-500/80 border-r border-green-500'
-  }
-  if (String(task.priority).toLowerCase() === 'high') {
-    return 'bg-tcc-warn/60 border-r border-tcc-warn shadow-[0_0_8px_rgba(245,158,11,0.4)]'
-  }
-  return 'bg-tcc-hi shadow-[0_0_10px_rgba(186,230,253,0.3)] border-r border-tcc-hi/80'
+  const status = task.scheduleStatus || 'on-track'
+  if (task.status?.toLowerCase() === 'done') return 'bg-green-500/50 border-r-2 border-green-500'
+  
+  if (status === 'overdue') return 'bg-tcc-critical/60 border-r-2 border-tcc-critical animate-pulse'
+  if (status === 'at-risk') return 'bg-tcc-warn/60 border-r-2 border-tcc-warn shadow-[0_0_8px_rgba(245,158,11,0.4)]'
+  
+  return 'bg-tcc-hi shadow-[0_0_10px_rgba(186,230,253,0.3)] border-r-2 border-tcc-hi/80'
 }
 
 const formatTimeOnly = (isoString) => {
