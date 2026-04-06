@@ -13,6 +13,7 @@ const getProjectItemsFragment = (withSubIssues = true) => `
     items(first: 100) {
       nodes {
         id
+        updatedAt
         content {
           ... on Issue {
             title
@@ -214,7 +215,10 @@ const normalizeProjectItem = (item, projectTitle, projectNumber) => {
     subIssueDoneCount: subIssueDoneCount,
     progressRate: progressRate,
     projectTitle: projectTitle,
-    projectNumber: projectNumber
+    project_name: projectTitle, // Alias for compatibility with local tasks
+    projectNumber: projectNumber,
+    issue: content.number, // Alias for compatibility with local tasks
+    updated_at: item.updatedAt // For sorting in dashboard
   }
 }
 

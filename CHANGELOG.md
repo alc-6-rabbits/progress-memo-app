@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [Unreleased]
+### Fixed
+- **HOME画面のGitHub連携データの表示機能の復元**
+  - 最近のバージョンで消失していた GitHub Projects V2 からのデータ取得・統合ロジックを再実装。
+  - `useGitHubGraphQL` を Dashboard (`index.vue`) に統合し、ローカルタスクと GitHub アイテムの並列取得・最新順ソートを実現。
+
 ## [1.6.0] - 2026-04-05
 ### Added
 - **プロジェクト進捗状況の可視化 (GitHub Projects 連携)**

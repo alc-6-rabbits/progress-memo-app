@@ -156,8 +156,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useGitHubGraphQL } from '~/composables/useGitHubGraphQL'
 
 const router = useRouter()
+const { fetchAllProjectItems } = useGitHubGraphQL()
 
 const pending = ref(true)
 const allTasks = ref([])
@@ -169,12 +171,33 @@ const githubRepoSetting = ref('')
 const refresh = async () => {
   pending.value = true
   try {
+    const tasks = []
+    
+    // 1. Fetch Local Markdowns
     if (window.electronAPI && window.electronAPI.getAllMarkdowns) {
-      const data = await window.electronAPI.getAllMarkdowns()
-      allTasks.value = data.sort((a,b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+      const localData = await window.electronAPI.getAllMarkdowns()
+      tasks.push(...localData)
     }
+    
+    // 2. Fetch GitHub Project Items
+    try {
+      const githubItems = await fetchAllProjectItems()
+      if (githubItems && githubItems.length > 0) {
+        tasks.push(...githubItems)
+      }
+    } catch (ghErr) {
+      console.error('Error fetching GitHub items:', ghErr)
+    }
+
+    // Sort all by updated_at or created_at
+    allTasks.value = tasks.sort((a,b) => {
+      const dateA = new Date(a.updated_at || a.created_at || 0).getTime()
+      const dateB = new Date(b.updated_at || b.created_at || 0).getTime()
+      return dateB - dateA
+    })
+    
   } catch (err) {
-    console.error('Error fetching markdowns:', err)
+    console.error('Error in refresh:', err)
   } finally {
     pending.value = false
   }
@@ -196,9 +219,18 @@ const filteredTasks = computed(() => {
 })
 
 const recentTasks = computed(() => filteredTasks.value.slice(0, 10))
-const tasksTodo = computed(() => filteredTasks.value.filter(t => t.status === 'todo' || !t.status))
-const tasksInProgress = computed(() => filteredTasks.value.filter(t => t.status === 'in-progress' || t.status === 'inProgress' || t.status === 'engaged'))
-const tasksDone = computed(() => filteredTasks.value.filter(t => t.status === 'done' || t.status === 'archived'))
+const tasksTodo = computed(() => filteredTasks.value.filter(t => {
+  const s = String(t.status || '').toLowerCase()
+  return s === 'todo' || s === ''
+}))
+const tasksInProgress = computed(() => filteredTasks.value.filter(t => {
+  const s = String(t.status || '').toLowerCase()
+  return s === 'in-progress' || s === 'inprogress' || s === 'engaged' || s === 'in progress'
+}))
+const tasksDone = computed(() => filteredTasks.value.filter(t => {
+  const s = String(t.status || '').toLowerCase()
+  return s === 'done' || s === 'archived'
+}))
 
 const overdueTasks = computed(() => {
   // Mock logic - if there's a priority=high and it's active
