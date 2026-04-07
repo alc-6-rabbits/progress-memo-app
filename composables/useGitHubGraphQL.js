@@ -255,24 +255,26 @@ export const formatProjectProgress = (items) => {
     const todo = projectItems.filter(i => i.status === 'Todo')
 
     if (inProgress.length > 0) {
+      lines.push('')
       lines.push('[In Progress 進捗状況]')
       for (const item of inProgress) {
         if (item.subIssueCount > 0) {
-          lines.push(`・${item.title}　${item.subIssueDoneCount} / ${item.subIssueCount}　${item.progressRate}%`)
+          lines.push(`- ${item.title}　${item.subIssueDoneCount} / ${item.subIssueCount}　${item.progressRate}%`)
         } else {
-          lines.push(`・${item.title}　Sub-Issueなし`)
+          lines.push(`- ${item.title}　Sub-Issueなし`)
         }
       }
       lines.push('')
     }
 
     if (todo.length > 0) {
+      lines.push('')
       lines.push('[ToDo リスト]')
       for (const item of todo) {
         if (item.subIssueCount > 0) {
-          lines.push(`・${item.title}　${item.subIssueDoneCount} / ${item.subIssueCount}　${item.progressRate}%`)
+          lines.push(`- ${item.title}　${item.subIssueDoneCount} / ${item.subIssueCount}　${item.progressRate}%`)
         } else {
-          lines.push(`・${item.title}　Sub-Issueなし`)
+          lines.push(`- ${item.title}　Sub-Issueなし`)
         }
       }
       lines.push('')

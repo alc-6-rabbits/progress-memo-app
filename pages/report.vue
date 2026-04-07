@@ -271,7 +271,7 @@ const withCommentMarkers = (text) => {
    if (!text) return ''
    return text.split('\n').map(line => {
       if (line.trim().startsWith('- ')) {
-         return `${line}\n  ⇒　`
+         return `${line}  \n  ⇒  `
       }
       return line
    }).join('\n')
@@ -346,7 +346,8 @@ const refresh = async () => {
   pending.value = true
   try {
     if (window.electronAPI && window.electronAPI.getAllReports) {
-      const data = await window.electronAPI.getAllReports()
+      const customDirPath = localStorage.getItem('tasksDir') || ''
+      const data = await window.electronAPI.getAllReports(customDirPath)
       allReports.value = data
       if (activeReport.value) {
          const updated = data.find(r => r._file === activeReport.value._file)
@@ -567,7 +568,8 @@ const saveChanges = async () => {
       const filename = activeReport.value._file
       
       if(window.electronAPI && window.electronAPI.saveReport) {
-         const response = await window.electronAPI.saveReport(filename, fmStr)
+         const customDirPath = localStorage.getItem('tasksDir') || ''
+         const response = await window.electronAPI.saveReport(filename, fmStr, customDirPath)
          if(response.success) {
             showMessage('REPORT DATA SECURED.')
             isEditing.value = false
