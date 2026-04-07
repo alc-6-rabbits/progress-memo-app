@@ -1,0 +1,15 @@
+# CHANGELOG
+
+## [1.7.0] - 2026-04-06
+### Added
+- **HOME画面（Dashboard）の表示高度化 (Evolution Phase)**
+  - DATALINK FEED: GitHub（#No/Repo）およびローカル（本文プレビュー）の詳細表示に対応。
+  - Task Board: 「COMPLETED」列を「ICEBOX」へ変更し、保留タスクの可視性を向上。
+  - Task Board: 各カードに識別子バッジ（#No / Local）を追加。
+  - Tactical Timeline: 計画ベースの実装へ刷新。`startDate` と `dueDate` (Target Date) に基づく期間表示に対応。
+
+### Fixed
+- **HOME画面のGitHub連携データの表示機能の復元**
+  - 最近のバージョンで消失していた GitHub Projects V2 からのデータ取得・統合ロジックを再実装。
+  - `useGitHubGraphQL` を Dashboard (`index.vue`) に統合し、ローカルタスクと GitHub アイテムの並列取得・最新順ソートを実現。
+

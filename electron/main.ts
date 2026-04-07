@@ -241,7 +241,7 @@ ipcMain.handle('save-projects', async (event, data: any, customDirPath?: string)
 ipcMain.handle('save-report', async (event, filename: string, content: string, customDirPath?: string) => {
     try {
         const defaultDataDir = path.join(app.getPath('userData'), 'tcc-data')
-        const rootDir = customDirPath ? path.dirname(customDirPath) : defaultDataDir
+        const rootDir = customDirPath ? customDirPath : defaultDataDir
         const targetDir = path.join(rootDir, 'reports')
         
         if (!fs.existsSync(targetDir)) {
@@ -261,7 +261,7 @@ ipcMain.handle('save-report', async (event, filename: string, content: string, c
 ipcMain.handle('get-all-reports', async (event, customDirPath?: string) => {
     try {
         const defaultDataDir = path.join(app.getPath('userData'), 'tcc-data')
-        const rootDir = customDirPath ? path.dirname(customDirPath) : defaultDataDir
+        const rootDir = customDirPath ? customDirPath : defaultDataDir
         const targetDir = path.join(rootDir, 'reports')
         
         if (!fs.existsSync(targetDir)) {
