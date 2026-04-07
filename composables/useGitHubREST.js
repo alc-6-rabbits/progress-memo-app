@@ -111,60 +111,95 @@ export const useGitHubREST = () => {
   }
 
   /**
+   * ローカルの YYYY/MM/DD 文字列を Date オブジェクトに変換する
+   * @param {string} dateStr - "2026/04/07"
+   * @param {boolean} [endOfDay=false] - その日の 23:59:59.999 を生成するかどうか
+   * @returns {Date|null}
+   */
+  const parseLocalDate = (dateStr, endOfDay = false) => {
+    if (!dateStr || typeof dateStr !== 'string') return null
+    const parts = dateStr.includes('/') ? dateStr.split('/') : dateStr.split('-')
+    if (parts.length < 3) return null
+    
+    const [y, m, d] = parts.map(Number)
+    if (isNaN(y) || isNaN(m) || isNaN(d)) return null
+    
+    const dt = new Date(y, m - 1, d)
+    if (endOfDay) dt.setHours(23, 59, 59, 999)
+    else dt.setHours(0, 0, 0, 0)
+    return dt
+  }
+
+  /**
    * ユーザーのイベントを取得する（期間内をフィルタリング）
-   * @param {string} since - ISO 8601 日付文字列（この日以降のイベントを取得）
-   * @param {string} [until] - ISO 8601 日付文字列（この日以前のイベントを取得）
-   * @returns {Promise<Array>} イベント配列
+   * @param {string} since - "YYYY/MM/DD" 形式の日付文字列
+   * @param {string} [until] - "YYYY/MM/DD" 形式の日付文字列
+   * @returns {Promise<{ events: Array, error: string|null }>} イベント配列とエラー情報
    */
   const fetchUserEvents = async (since, until) => {
     const pat = await getDecryptedPat()
-    if (!pat) return []
+    if (!pat) return { events: [], error: 'GitHub PAT is not configured.' }
 
     const userRes = await getAuthenticatedUser()
-    if (!userRes.success) return []
+    if (!userRes.success) return { events: [], error: `Auth failed: ${userRes.error}` }
     const username = userRes.login
 
-    const sinceDate = new Date(since)
-    sinceDate.setHours(0, 0, 0, 0)
+    // sinceDate: 基準日の 00:00:00 (Local/JST)
+    const sinceDate = parseLocalDate(since)
+    if (!sinceDate) return { events: [], error: `Invalid since date: ${since}` }
     
-    let untilDate = until ? new Date(until) : new Date()
-    untilDate.setHours(23, 59, 59, 999)
+    // 境界値での漏れを防ぐため、さらに1時間余裕を持たせる
+    const compareSinceDate = new Date(sinceDate.getTime() - 60 * 60 * 1000)
+
+    // untilDate: 終了日の 23:59:59 (Local/JST)
+    let untilDate = until ? parseLocalDate(until, true) : new Date()
+    if (!until) untilDate.setHours(23, 59, 59, 999)
 
     const events = []
     let page = 1
-    const maxPages = 5 // 週報用に少し多めに取得可能にする
+    const maxPages = 10 
 
-    while (page <= maxPages) {
-      const url = `https://api.github.com/users/${username}/events?per_page=100&page=${page}`
-      const response = await fetch(url, {
-        headers: getHeaders(pat)
-      })
+    try {
+      while (page <= maxPages) {
+        const url = `https://api.github.com/users/${username}/events?per_page=100&page=${page}`
+        const response = await fetch(url, {
+          headers: getHeaders(pat)
+        })
 
-      if (!response.ok) break
-
-      const data = await response.json()
-      if (data.length === 0) break
-
-      for (const event of data) {
-        const eventDate = new Date(event.created_at)
-        
-        // sinceDate より古いイベントに到達したら終了
-        if (eventDate < sinceDate) {
-          return events
+        if (!response.ok) {
+          const errText = await response.text().catch(() => response.statusText)
+          throw new Error(`API error (${response.status}): ${errText}`)
         }
 
-        // untilDate より新しいイベントはスキップ
-        if (eventDate > untilDate) {
-          continue
+        const data = await response.json()
+        if (data.length === 0) break
+
+        for (const event of data) {
+          const eventDate = new Date(event.created_at)
+          
+          // compareSinceDate より古い項目に到達したら停止
+          if (eventDate < compareSinceDate) {
+            return { events, error: null }
+          }
+
+          // untilDate より新しい項目はスキップ
+          if (eventDate > untilDate) {
+            continue
+          }
+
+          // sinceDate による厳密な判定
+          if (eventDate >= sinceDate) {
+            events.push(event)
+          }
         }
 
-        events.push(event)
+        page++
       }
-
-      page++
+      return { events, error: null }
+    } catch (e) {
+      console.error('[GitHub REST] Error in fetchUserEvents:', e)
+      return { events, error: e.message }
     }
-
-    return events
   }
 
   /**

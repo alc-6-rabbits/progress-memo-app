@@ -283,11 +283,16 @@ const buildReportTemplate = async (options) => {
    let githubMd = '（GitHub 連携が設定されていません）'
    if (hasGitHub) {
       try {
-         const events = type === 'daily' ? await fetchUserEvents(startStr) : await fetchUserEvents(startStr, endStr)
-         githubMd = formatEventsAsMarkdown(events)
+         const { events, error: fetchError } = type === 'daily' ? await fetchUserEvents(startStr) : await fetchUserEvents(startStr, endStr)
+         if (fetchError) {
+            console.warn('Failed to fetch events', fetchError)
+            githubMd = `（GitHub アクティビティの取得中にエラーが発生しました: ${fetchError}）`
+         } else {
+            githubMd = formatEventsAsMarkdown(events)
+         }
       } catch (e) {
          console.warn('Failed to fetch events', e)
-         githubMd = '（取得に失敗しました）'
+         githubMd = `（取得に失敗しました: ${e.message}）`
       }
    }
    
