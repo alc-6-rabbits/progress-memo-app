@@ -493,7 +493,8 @@ const insertSyntax = (start, end) => {
 
 const getLocalTasks = async () => {
    if (window.electronAPI && window.electronAPI.getAllMarkdowns) {
-      return await window.electronAPI.getAllMarkdowns()
+      const tasksDir = localStorage.getItem('tasksDir') || ''
+      return await window.electronAPI.getAllMarkdowns(tasksDir)
    }
    return []
 }

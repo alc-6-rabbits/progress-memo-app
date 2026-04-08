@@ -268,12 +268,13 @@ ipcMain.handle('get-all-reports', async (event, customDirPath?: string) => {
            return []
         }
 
-        const fg = require('fast-glob')
-        const files = await fg('**/*.md', { cwd: targetDir })
+        const files = await fs.promises.readdir(targetDir)
         
         const matter = require('gray-matter')
         const reports = []
         for (const file of files) {
+            if (!file.endsWith('.md')) continue
+            
             const filePath = path.join(targetDir, file)
             const content = await fs.promises.readFile(filePath, 'utf-8')
             const stats = await fs.promises.stat(filePath)

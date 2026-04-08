@@ -196,7 +196,8 @@ const refresh = async () => {
     
     // 1. Fetch Local Markdowns
     if (window.electronAPI && window.electronAPI.getAllMarkdowns) {
-      const localData = await window.electronAPI.getAllMarkdowns()
+      const tasksDir = localStorage.getItem('tasksDir') || ''
+      const localData = await window.electronAPI.getAllMarkdowns(tasksDir)
       tasks.push(...localData)
     }
     
