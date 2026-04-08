@@ -238,7 +238,8 @@ const refresh = async () => {
   pending.value = true
   try {
     if (window.electronAPI && window.electronAPI.getAllMarkdowns) {
-      const data = await window.electronAPI.getAllMarkdowns()
+      const tasksDir = localStorage.getItem('tasksDir') || ''
+      const data = await window.electronAPI.getAllMarkdowns(tasksDir)
       allTasks.value = data
       
       // Auto-select or handle new task creation

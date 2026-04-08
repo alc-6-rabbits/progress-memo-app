@@ -1,6 +1,6 @@
 {
   "name": "tactical-command-center",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "main": "dist-electron/main.js",
   "scripts": {
     "build": "nuxt build",
